@@ -304,3 +304,4 @@ cd frontend/apicostguard && npm install && npm run dev
 ```
 
 *Last updated: July 30, 2026*
+# apicostguard
