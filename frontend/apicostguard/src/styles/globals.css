@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-deep: #0B1220;
+    --bg-surface: #111827;
+    --bg-sidebar: #0A0F1C;
+    --color-primary: #22C55E;
+    --color-secondary: #06B6D4;
+    --color-accent: #8B5CF6;
+    --color-warning: #F59E0B;
+    --color-danger: #EF4444;
+    --color-text: #F8FAFC;
+    --color-muted: #94A3B8;
+    --color-border: #334155;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: var(--bg-deep);
+    color: var(--color-text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-muted);
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-[#334155] bg-[#111827]/80 backdrop-blur-sm;
+  }
+
+  .card-hover {
+    @apply card transition-all duration-200 hover:border-[#334155]/80 hover:shadow-lg hover:shadow-black/20;
+  }
+
+  .glass {
+    @apply bg-[#111827]/60 backdrop-blur-xl border border-[#334155]/50;
+  }
+
+  .glow-primary {
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.15);
+  }
+
+  .glow-secondary {
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.15);
+  }
+
+  .glow-accent {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.15);
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-r from-[#22C55E] via-[#06B6D4] to-[#8B5CF6] bg-clip-text text-transparent;
+  }
+
+  .animate-pulse-dot {
+    @apply animate-pulse;
+  }
+
+  .progress-bar {
+    @apply h-2 rounded-full overflow-hidden bg-[#334155]/50;
+  }
+
+  .progress-fill {
+    @apply h-full rounded-full transition-all duration-500 ease-out;
+  }
+}

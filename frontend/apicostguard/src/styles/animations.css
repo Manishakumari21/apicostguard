@@ -1,0 +1,23 @@
+.widget-container {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: auto;
+}
+
+.widget-float {
+  animation: widget-float 3s ease-in-out infinite;
+}
+
+@keyframes widget-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.widget-glow {
+  animation: widget-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes widget-glow {
+  from { box-shadow: 0 0 10px rgba(34, 197, 94, 0.2); }
+  to { box-shadow: 0 0 20px rgba(34, 197, 94, 0.4); }
+}
