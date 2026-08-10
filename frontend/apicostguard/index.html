@@ -5,6 +5,16 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>APICostGuard</title>
+    <script>
+      (function () {
+        var theme = localStorage.getItem("apicostguard_theme") || "dark";
+        var dark = theme === "dark" ||
+          (theme === "system" &&
+            window.matchMedia("(prefers-color-scheme: light)").matches !== true);
+        document.documentElement.classList.toggle("theme-dark", dark);
+        document.documentElement.classList.toggle("theme-light", !dark);
+      })();
+    </script>
   </head>
 
   <body>

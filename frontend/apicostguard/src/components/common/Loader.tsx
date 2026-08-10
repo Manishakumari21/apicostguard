@@ -13,11 +13,11 @@ export default function Loader({ size = "md", text }: LoaderProps) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-12">
       <div className={`${sizes[size]} relative`}>
-        <div className="absolute inset-0 rounded-full border-2 border-[#334155]" />
-        <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#22C55E] animate-spin" />
+        <div className="absolute inset-0 rounded-full border-2 border-line" />
+        <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-iris animate-spin" />
       </div>
       {text && (
-        <p className="text-sm text-[#94A3B8]">{text}</p>
+        <p className="text-sm text-muted">{text}</p>
       )}
     </div>
   );

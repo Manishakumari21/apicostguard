@@ -5,8 +5,8 @@ interface StatusCardProps {
 
 export default function StatusCard({ totalEvents, connectedProviders }: StatusCardProps) {
   return (
-    <div className="p-4 rounded-xl bg-[#111827]/80 border border-[#334155]/50">
-      <h3 className="text-sm font-semibold text-[#94A3B8] mb-3">System Status</h3>
+    <div className="p-4 rounded-xl bg-card/80 border border-line/50">
+      <h3 className="text-sm font-semibold text-muted mb-3">System Status</h3>
 
       <div className="space-y-3">
         <StatusRow
@@ -34,9 +34,9 @@ function StatusRow({ label, value, color }: { label: string; value: string; colo
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-2">
         <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-        <span className="text-xs text-[#94A3B8]">{label}</span>
+        <span className="text-xs text-muted">{label}</span>
       </div>
-      <span className="text-xs font-medium text-[#F8FAFC]">{value}</span>
+      <span className="text-xs font-medium text-ink">{value}</span>
     </div>
   );
 }

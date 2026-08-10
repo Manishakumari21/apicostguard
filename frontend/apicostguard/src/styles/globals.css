@@ -4,17 +4,49 @@
 
 @layer base {
   :root {
-    --bg-deep: #0B1220;
-    --bg-surface: #111827;
-    --bg-sidebar: #0A0F1C;
-    --color-primary: #22C55E;
-    --color-secondary: #06B6D4;
-    --color-accent: #8B5CF6;
-    --color-warning: #F59E0B;
-    --color-danger: #EF4444;
-    --color-text: #F8FAFC;
-    --color-muted: #94A3B8;
-    --color-border: #334155;
+    /* Rosé Pine (dark) */
+    --canvas: 25 23 36;      /* base     #191724 */
+    --sidebar: 31 29 46;     /* surface  #1f1d2e */
+    --surface: 31 29 46;     /* surface  #1f1d2e */
+    --card: 38 35 58;        /* overlay  #26233a */
+    --line: 64 61 82;        /* highlightMed #403d52 */
+    --ink: 224 222 244;      /* text     #e0def4 */
+    --muted: 144 140 170;    /* subtle   #908caa */
+    --faint: 110 106 134;    /* muted    #6e6a86 */
+    --accent: 196 167 231;   /* iris     #c4a7e7 */
+    --success: 156 207 216;  /* foam     #9ccfd8 */
+    --warning: 246 193 119;  /* gold     #f6c177 */
+    --danger: 235 111 146;   /* love     #eb6f92 */
+    --info: 235 187 186;     /* rose     #ebbcba */
+    --iris: 196 167 231;     /* #c4a7e7 */
+    --rose: 235 187 186;     /* #ebbcba */
+    --foam: 156 207 216;     /* #9ccfd8 */
+    --gold: 246 193 119;     /* #f6c177 */
+    --love: 235 111 146;     /* #eb6f92 */
+    --pine: 49 116 143;      /* #31748f */
+  }
+
+  .theme-light {
+    /* Rosé Pine Dawn (light) */
+    --canvas: 250 244 237;   /* base     #faf4ed */
+    --sidebar: 255 250 243;  /* surface  #fffaf3 */
+    --surface: 255 250 243;  /* surface  #fffaf3 */
+    --card: 242 233 225;     /* overlay  #f2e9e1 */
+    --line: 223 218 217;     /* highlightMed #dfdad9 */
+    --ink: 87 82 121;        /* text     #575279 */
+    --muted: 121 117 147;    /* subtle   #797593 */
+    --faint: 152 147 165;    /* muted    #9893a5 */
+    --accent: 144 122 169;   /* iris     #907aa9 */
+    --success: 86 148 159;   /* foam     #56949f */
+    --warning: 234 157 52;   /* gold     #ea9d34 */
+    --danger: 180 99 122;    /* love     #b4637a */
+    --info: 215 130 126;     /* rose     #d7827e */
+    --iris: 144 122 169;     /* #907aa9 */
+    --rose: 215 130 126;     /* #d7827e */
+    --foam: 86 148 159;      /* #56949f */
+    --gold: 234 157 52;      /* #ea9d34 */
+    --love: 180 99 122;      /* #b4637a */
+    --pine: 40 105 131;      /* #286983 */
   }
 
   * {
@@ -23,17 +55,30 @@
     box-sizing: border-box;
   }
 
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
   body {
-    font-family: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
-    background-color: var(--bg-deep);
-    color: var(--color-text);
+    font-family: "Inter", "Geist", "SF Pro Display", -apple-system,
+      BlinkMacSystemFont, sans-serif;
+    background-color: rgb(var(--canvas));
+    background-image:
+      radial-gradient(60rem 32rem at 12% -12%, rgb(var(--iris) / 0.10), transparent 60%),
+      radial-gradient(48rem 26rem at 100% 0%, rgb(var(--rose) / 0.08), transparent 55%),
+      radial-gradient(40rem 22rem at 50% 110%, rgb(var(--pine) / 0.07), transparent 60%);
+    background-attachment: fixed;
+    color: rgb(var(--ink));
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
   }
 
   ::-webkit-scrollbar-track {
@@ -41,42 +86,46 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: var(--color-border);
-    border-radius: 3px;
+    background: rgb(var(--line));
+    border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-muted);
+    background: rgb(var(--faint));
   }
 }
 
 @layer components {
   .card {
-    @apply rounded-xl border border-[#334155] bg-[#111827]/80 backdrop-blur-sm;
+    @apply rounded-2xl border border-line bg-card shadow-[0_2px_16px_rgba(31,29,46,0.45)];
   }
 
   .card-hover {
-    @apply card transition-all duration-200 hover:border-[#334155]/80 hover:shadow-lg hover:shadow-black/20;
+    @apply card transition-all duration-200 hover:border-iris/40 hover:shadow-[0_4px_24px_rgba(196,167,231,0.14)];
   }
 
   .glass {
-    @apply bg-[#111827]/60 backdrop-blur-xl border border-[#334155]/50;
+    @apply bg-surface/60 backdrop-blur-xl border border-line/60;
   }
 
   .glow-primary {
-    box-shadow: 0 0 20px rgba(34, 197, 94, 0.15);
+    box-shadow: 0 0 20px rgba(196, 167, 231, 0.22);
   }
 
-  .glow-secondary {
-    box-shadow: 0 0 20px rgba(6, 182, 212, 0.15);
+  .glow-safe {
+    box-shadow: 0 0 20px rgba(156, 207, 216, 0.22);
   }
 
-  .glow-accent {
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.15);
+  .glow-warning {
+    box-shadow: 0 0 20px rgba(246, 193, 119, 0.22);
+  }
+
+  .glow-critical {
+    box-shadow: 0 0 20px rgba(235, 111, 146, 0.22);
   }
 
   .text-gradient {
-    @apply bg-gradient-to-r from-[#22C55E] via-[#06B6D4] to-[#8B5CF6] bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-iris via-rose to-foam bg-clip-text text-transparent;
   }
 
   .animate-pulse-dot {
@@ -84,10 +133,18 @@
   }
 
   .progress-bar {
-    @apply h-2 rounded-full overflow-hidden bg-[#334155]/50;
+    @apply h-2 rounded-full overflow-hidden bg-line/60;
   }
 
   .progress-fill {
     @apply h-full rounded-full transition-all duration-500 ease-out;
+  }
+
+  .input {
+    @apply mt-1 w-full px-3 py-2 rounded-lg bg-canvas/60 border border-line text-ink text-sm focus:outline-none focus:border-accent/60 transition-colors;
+  }
+
+  .label {
+    @apply text-sm text-muted;
   }
 }

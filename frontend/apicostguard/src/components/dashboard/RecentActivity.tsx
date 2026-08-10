@@ -10,18 +10,18 @@ interface ActivityCardProps {
 export default function ActivityCard({ events }: ActivityCardProps) {
   if (events.length === 0) {
     return (
-      <div className="p-4 rounded-xl bg-[#111827]/80 border border-[#334155]/50">
-        <h3 className="text-sm font-semibold text-[#94A3B8] mb-3">Recent Activity</h3>
-        <p className="text-sm text-[#94A3B8]/60 text-center py-6">No activity yet</p>
+      <div className="p-4 rounded-xl bg-card/80 border border-line/50">
+        <h3 className="text-sm font-semibold text-muted mb-3">Recent Activity</h3>
+        <p className="text-sm text-muted/60 text-center py-6">No activity yet</p>
       </div>
     );
   }
 
   return (
-    <div className="p-4 rounded-xl bg-[#111827]/80 border border-[#334155]/50">
+    <div className="p-4 rounded-xl bg-card/80 border border-line/50">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-[#94A3B8]">Recent Activity</h3>
-        <span className="text-xs text-[#94A3B8]/60">{events.length} events</span>
+        <h3 className="text-sm font-semibold text-muted">Recent Activity</h3>
+        <span className="text-xs text-muted/60">{events.length} events</span>
       </div>
 
       <div className="space-y-2">
@@ -30,7 +30,7 @@ export default function ActivityCard({ events }: ActivityCardProps) {
           return (
             <div
               key={event.id}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#0B1220]/50 hover:bg-[#334155]/20 transition-colors"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-canvas/50 hover:bg-line/20 transition-colors"
             >
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0"
@@ -39,16 +39,16 @@ export default function ActivityCard({ events }: ActivityCardProps) {
                 {getProviderIcon(event.provider)}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-[#F8FAFC] truncate">
+                <p className="text-sm font-medium text-ink truncate">
                   {event.provider} · {event.model}
                 </p>
-                <p className="text-xs text-[#94A3B8]">
+                <p className="text-xs text-muted">
                   {formatTokens(event.inputTokens + event.outputTokens)} tokens
                 </p>
               </div>
               <div className="text-right shrink-0">
-                <p className="text-sm font-semibold text-[#22C55E]">{formatCost(event.cost)}</p>
-                <p className="text-xs text-[#94A3B8]/60">{formatTimeAgo(event.timestamp)}</p>
+                <p className="text-sm font-semibold text-success">{formatCost(event.cost)}</p>
+                <p className="text-xs text-muted/60">{formatTimeAgo(event.timestamp)}</p>
               </div>
             </div>
           );

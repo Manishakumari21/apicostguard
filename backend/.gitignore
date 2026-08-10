@@ -1,0 +1,7 @@
+/target
+
+# Secrets & runtime artifacts (never commit these)
+.env
+*.db
+*.key
+*.enc

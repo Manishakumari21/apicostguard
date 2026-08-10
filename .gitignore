@@ -1,0 +1,28 @@
+# Secrets & runtime artifacts (never commit these)
+.env
+*.db
+*.key
+*.enc
+*.local
+
+# Rust
+target/
+Cargo.lock.orig
+
+# Node / frontend
+node_modules/
+dist/
+dist-ssr/
+*.tsbuildinfo
+
+# Compiled sidecar gateway (built by CI / release workflow)
+frontend/apicostguard/src-tauri/bin/
+
+# Logs
+logs
+*.log
+
+# Editor directories and files
+.idea/
+.DS_Store
+*.swp

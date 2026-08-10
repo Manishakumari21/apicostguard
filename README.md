@@ -6,6 +6,29 @@ APICostGuard sits as a **local gateway** between your AI-powered tools (Cursor, 
 
 The application runs locally to protect user privacy and provides a single dashboard for monitoring AI consumption across multiple providers, projects, and budgets.
 
+## Install & use the app (no coding required)
+
+The desktop app bundles everything — the dashboard *and* the local gateway. One
+install, nothing to run from a terminal.
+
+1. **Install the app** — grab the installer for your OS from the
+   [Releases](https://github.com/anomalyco/opencode/releases) page
+   (`.deb`/`.AppImage` on Linux, `.dmg` on macOS, `.msi`/`.exe` on Windows).
+2. **Launch APICostGuard** — it starts the local gateway automatically (an icon
+   appears in your system tray; closing the window keeps it running).
+3. **Add your API keys** — open **API Keys** in the app, pick a provider
+   (OpenAI, Anthropic, Gemini, Groq, OpenRouter, …), paste your key, and save.
+   Keys are stored in your OS credential store and never leave your machine.
+4. **Set a budget** — open **Settings → Budget**, pick a monthly limit and an
+   alert threshold. You'll get a desktop notification when you approach the
+   limit.
+
+That's it. Local AI servers (Ollama, LM Studio) are detected automatically.
+
+For developers who want to route their own tools through the gateway, point them
+at `http://127.0.0.1:8080/v1/chat/completions` — the gateway auto-detects the
+provider from the model name and logs every request (tokens, latency, cost).
+
 ## Tech Stack
 
 | Component | Technology |
@@ -52,7 +75,8 @@ backend/
 │   ├── 0001_initial.sql
 │   ├── 0002_budget.sql
 │   ├── 0003_projects.sql
-│   └── 0004_notifications.sql
+│   ├── 0004_notifications.sql
+│   └── 0005_daily_budget.sql
 │
 ├── src/
 │   ├── main.rs
@@ -79,7 +103,6 @@ backend/
 │   ├── database/        · SQLite connection and migrations
 │   │   ├── mod.rs
 │   │   ├── sqlite.rs
-│   │   ├── connection.rs
 │   │   ├── repository.rs
 │   │   └── migrations.rs
 │   │
@@ -127,8 +150,7 @@ backend/
 │   ├── notifications/   · desktop notification delivery
 │   │   ├── mod.rs
 │   │   ├── desktop.rs
-│   │   ├── scheduler.rs
-│   │   └── tray.rs
+│   │   └── scheduler.rs
 │   │
 │   ├── security/        · API key management and encryption
 │   │   ├── mod.rs
@@ -140,21 +162,17 @@ backend/
 │   │   ├── mod.rs
 │   │   ├── logger.rs
 │   │   ├── cors.rs
-│   │   ├── request_id.rs
 │   │   └── error_handler.rs
 │   │
 │   ├── errors/          · typed error types
 │   │   ├── mod.rs
-│   │   ├── app_error.rs
-│   │   ├── provider_error.rs
-│   │   └── database_error.rs
+│   │   └── app_error.rs
 │   │
 │   ├── utils/           · shared utilities
 │   │   ├── mod.rs
-│   │   ├── response.rs
 │   │   ├── helpers.rs
 │   │   ├── datetime.rs
-│   │   ├── validator.rs
+│   │   ├── parent_watch.rs
 │   │   └── shutdown.rs
 │   │
 │   └── tests/           · integration and unit tests
@@ -179,6 +197,8 @@ frontend/
 │   │   ├── utils/
 │   │   └── styles/
 │   ├── src-tauri/       · Tauri native shell
+│   │   ├── bin/         · bundled backend gateway (sidecar)
+│   │   └── src/         · sidecar spawn, tray, monitor commands
 │   └── index.html
 ├── public/
 └── src/                 · (placeholder)
@@ -249,10 +269,12 @@ frontend/
 - Per-project usage: name, provider, model, cost, tokens, requests
 - **Deliverable**: Per-project usage is stored
 
-### Phase 12 — Backend API
-- `GET /dashboard`, `/history`, `/projects`, `/budgets`, `/analytics`
+### Phase 12 — Frontend Integration
+- Backend API: `GET /dashboard`, `/history`, `/projects`, `/budgets`, `/analytics`, `DELETE /api/history`
 - `GET /api/settings`, `POST /settings`, `/providers`, `/budgets`
-- **Deliverable**: Frontend can consume all required data
+- Frontend service layer (`services/backend.ts`, `monitor.ts`, `settings.ts`, `apiKeys.ts`, `notification.ts`) fetches from the Rust API at `http://localhost:8080`, with automatic fallback to Tauri/demo data when the backend is offline
+- API keys persist to the OS keychain via `POST /api/providers/:id/key`, validated via `POST /api/providers/:id/validate`
+- **Deliverable**: Frontend consumes real backend data end-to-end
 
 ## API Endpoints
 
@@ -271,9 +293,13 @@ frontend/
 | GET | `/api/settings` | 12 |
 | GET | `/dashboard` | 12 |
 | GET | `/history` | 12 |
+| DELETE | `/api/history` | 12 |
 | GET | `/projects` | 12 |
 | POST | `/settings` | 12 |
 | POST | `/providers` | 12 |
+| POST | `/providers/:id/validate` | 12 |
+| POST | `/providers/:id/key` | 12 |
+| DELETE | `/providers/:id/key` | 12 |
 | POST | `/budgets` | 12 |
 
 ## Development Order
@@ -293,15 +319,65 @@ frontend/
 
 This order minimizes rework because each phase builds on the previous one. By the time you reach the frontend, the backend already exposes stable APIs and contains all the business logic.
 
-## Quick Start
+## Quick Start (developers)
+
+The desktop app is the main product: it bundles and auto-starts the backend
+gateway, so `cargo run` is **not** required when using the app.
+
+For development you can run the pieces independently:
 
 ```bash
-# Backend
+# 1. Start the backend (Rust API on http://localhost:8080)
 cd backend && cargo run
 
-# Frontend
+# 2. Start the frontend (Vite dev server)
 cd frontend/apicostguard && npm install && npm run dev
+
+# 3. Open http://localhost:5173 (browser) — the UI talks to the backend
+#    Or run the native desktop shell:
+#    cd frontend/apicostguard && npm run tauri dev
 ```
 
-*Last updated: July 30, 2026*
-# apicostguard
+The frontend falls back to Tauri commands (and empty states when nothing is running) automatically if the backend is offline, so either can be started independently.
+
+### Building the desktop app with the bundled gateway
+
+```bash
+# Build the backend sidecar once, then build the app
+cd backend && cargo build --release
+cp target/release/apicostguard_backend \
+  ../frontend/apicostguard/src-tauri/bin/apicostguard_backend-$(rustc -vV | sed -n 's/host: //p')
+cd ../frontend/apicostguard && npm run tauri build
+```
+
+On startup the app reuses an already-running gateway on port 8080 if one is
+healthy, otherwise it spawns the bundled binary (which shuts down automatically
+when the app exits). Set `PORT`/`HOST` in `backend/.env` to change the gateway
+address used by the app (the bundled gateway always uses `127.0.0.1:8080`).
+
+## End-user guide
+
+See [docs/ONBOARDING.md](docs/ONBOARDING.md) for setup, adding your first provider,
+pointing AI tools at the gateway, and troubleshooting.
+
+## CI / Releases
+
+- `.github/workflows/ci.yml` — runs `cargo fmt`, `cargo clippy -D warnings`, `cargo test`,
+  and the frontend typecheck + production build on every push/PR.
+- `.github/workflows/release.yml` — builds desktop installers on a `v*` tag push.
+- Secrets (`backend/.env`, `*.db`, `*.key`, `*.enc`) are gitignored and never committed.
+
+## Tests & Verification
+
+```bash
+# Backend: 24 tests (cargo clippy -- -D warnings clean, cargo fmt clean)
+cd backend && cargo test
+
+# Frontend: typecheck + production build
+cd frontend/apicostguard && npm run build
+
+# Endpoint smoke test (backend must be running)
+bash docs/test_all_phases.sh
+```
+
+*Last updated: August 10, 2026*

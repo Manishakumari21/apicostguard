@@ -14,7 +14,7 @@ export default function Switch({ checked, onChange, label, disabled }: SwitchPro
         disabled={disabled}
         onClick={() => !disabled && onChange(!checked)}
         className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ${
-          checked ? "bg-[#22C55E]" : "bg-[#334155]"
+          checked ? "bg-accent" : "bg-line"
         } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
       >
         <span
@@ -24,7 +24,7 @@ export default function Switch({ checked, onChange, label, disabled }: SwitchPro
         />
       </button>
       {label && (
-        <span className="text-sm text-[#94A3B8]">{label}</span>
+        <span className="text-sm text-muted">{label}</span>
       )}
     </label>
   );

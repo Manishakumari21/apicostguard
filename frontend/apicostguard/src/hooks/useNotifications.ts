@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { useNotifications, useNotificationDispatch } from "../context/NotificationContext";
-import type { Notification } from "../types/notification";
+import { generateId } from "../utils/helpers";
+import type { Notification, NotificationType } from "../types/notification";
 
 export function useNotificationData() {
   return useNotifications();
@@ -32,4 +33,30 @@ export function useClearNotifications() {
 export function useNotificationsByType(type: Notification["type"]) {
   const { items } = useNotifications();
   return useMemo(() => items.filter((n) => n.type === type), [items, type]);
+}
+
+export function useNotify() {
+  const dispatch = useNotificationDispatch();
+  return useCallback(
+    (
+      title: string,
+      message: string,
+      type: NotificationType = "system",
+      provider?: string
+    ) => {
+      dispatch({
+        type: "ADD_NOTIFICATION",
+        payload: {
+          id: generateId(),
+          title,
+          message,
+          type,
+          provider,
+          timestamp: new Date().toISOString(),
+          read: false,
+        },
+      });
+    },
+    [dispatch]
+  );
 }
