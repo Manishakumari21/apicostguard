@@ -54,7 +54,7 @@ pub fn build_router(state: AppState) -> Router {
         .route("/api/notifications/send", post(notification::send))
         .route("/api/notifications", get(notification::list))
         .fallback(error_handler::handle_404)
-        .layer(cors::cors_layer())
+        .layer(cors::cors_layer(&state.settings.allowed_origins))
         .layer(logger::layer())
         .merge(gateway)
         .with_state(state)

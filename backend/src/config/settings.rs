@@ -10,6 +10,7 @@ pub struct Config {
     pub log_level: String,
     pub database_url: String,
     pub gateway_token: Option<String>,
+    pub allowed_origins: Vec<String>,
 }
 
 impl Config {
@@ -35,6 +36,14 @@ impl Config {
         let database_url = env::var("DATABASE_URL")
             .unwrap_or_else(|_| constants::DEFAULT_DATABASE_URL.to_string());
         let gateway_token = env::var("APICOSTGUARD_GATEWAY_TOKEN").ok();
+        let allowed_origins = env::var("ALLOWED_ORIGINS")
+            .map(|v| {
+                v.split(',')
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+                    .collect()
+            })
+            .unwrap_or_default();
 
         Ok(Self {
             environment,
@@ -43,6 +52,7 @@ impl Config {
             log_level,
             database_url,
             gateway_token,
+            allowed_origins,
         })
     }
 

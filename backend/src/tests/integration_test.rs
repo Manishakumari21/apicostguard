@@ -39,6 +39,7 @@ mod integration_tests {
             log_level: "info".to_string(),
             database_url: ":memory:".to_string(),
             gateway_token: None,
+            allowed_origins: vec![],
         };
         let state = AppState::new(
             settings,

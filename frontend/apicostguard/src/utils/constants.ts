@@ -47,6 +47,7 @@ export const CLOUD_PROVIDERS = PROVIDERS.filter((p) => p.kind === "cloud");
 
 export const MAX_EVENTS = 1000;
 
-export const API_BASE_URL = "http://localhost:8080";
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
 
 export const LIVE_FEED_MAX = 6;
