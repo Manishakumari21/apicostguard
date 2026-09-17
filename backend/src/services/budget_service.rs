@@ -189,8 +189,7 @@ impl BudgetService {
                 monthly_limit_usd,
                 alert_threshold_percent,
                 &month,
-                &scope.kind,
-                scope.id.as_deref(),
+                (&scope.kind, scope.id.as_deref()),
             )
             .await?;
 

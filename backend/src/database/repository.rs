@@ -569,9 +569,9 @@ impl Repository {
         monthly_limit_usd: f64,
         alert_threshold_percent: u32,
         month: &str,
-        scope: &str,
-        scope_id: Option<&str>,
+        scope: (&str, Option<&str>),
     ) -> AppResult<()> {
+        let (scope, scope_id) = scope;
         let (id, name, month, scope) = (
             id.to_string(),
             name.to_string(),
