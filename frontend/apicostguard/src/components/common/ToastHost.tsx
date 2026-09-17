@@ -1,14 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNotifications, useNotificationDispatch } from "../../context/NotificationContext";
-import type { Notification, NotificationType } from "../../types/notification";
+import type { Notification } from "../../types/notification";
 import { formatTimeAgo } from "../../utils/date";
-
-const TYPE_META: Record<NotificationType, { icon: string; color: string }> = {
-  budget: { icon: "🎯", color: "#f6c177" },
-  provider: { icon: "🔌", color: "#c4a7e7" },
-  warning: { icon: "⚠️", color: "#eb6f92" },
-  system: { icon: "🔔", color: "#ebbcba" },
-};
+import { NOTIFICATION_TYPE_META } from "../../utils/constants";
 
 const TOAST_MS = 6000;
 
@@ -61,7 +55,7 @@ function Toast({
   onClose: () => void;
   onRead: () => void;
 }) {
-  const meta = TYPE_META[notification.type];
+  const meta = NOTIFICATION_TYPE_META[notification.type];
 
   useEffect(() => {
     const t = setTimeout(onClose, TOAST_MS);
@@ -70,7 +64,7 @@ function Toast({
 
   return (
     <div
-      className="toast-in pointer-events-auto w-full overflow-hidden rounded-2xl bg-card/90 backdrop-blur-md shadow-[0_12px_32px_rgba(31,29,46,0.5)] ring-1"
+      className="toast-in pointer-events-auto w-full overflow-hidden rounded-2xl bg-card/90 backdrop-blur-md shadow-[var(--shadow-pop)] ring-1"
       style={{ ["--tw-ring-color" as string]: `${meta.color}45` }}
       onClick={onRead}
     >

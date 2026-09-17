@@ -22,6 +22,14 @@ const MIGRATIONS: &[(&str, &str)] = &[
         "0005_daily_budget",
         include_str!("../../migrations/0005_daily_budget.sql"),
     ),
+    (
+        "0006_analytics_indexes",
+        include_str!("../../migrations/0006_analytics_indexes.sql"),
+    ),
+    (
+        "0007_scoped_budgets",
+        include_str!("../../migrations/0007_scoped_budgets.sql"),
+    ),
 ];
 
 pub fn run(conn: &mut Connection) -> anyhow::Result<()> {

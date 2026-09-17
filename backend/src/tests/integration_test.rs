@@ -198,8 +198,6 @@ mod integration_tests {
     #[tokio::test]
     #[allow(clippy::await_holding_lock)]
     async fn save_and_delete_provider_key_through_router() {
-        // Hold the shared keyring test lock for the whole test so the on-disk
-        // fallback store can't race with security::keyring's own unit tests.
         let _guard = crate::security::keyring::tests::TEST_LOCK.lock().unwrap();
         let _ = std::fs::remove_file("apicostguard.key");
         let _ = std::fs::remove_file("apicostguard_keys.enc");

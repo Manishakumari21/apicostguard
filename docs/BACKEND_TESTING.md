@@ -46,12 +46,12 @@ Real key ke bina bhi response structure check kar sakte ho — fake key se `"val
 # Expect: 200, {"provider":"groq","valid":false}
 curl -s -X POST http://127.0.0.1:8080/api/providers/groq/validate \
   -H 'Content-Type: application/json' \
-  -d '{"api_key":"gsk_fake_key"}' 
+  -d '{"api_key":"gsk_fake_key"}'
 
 # Real key se (Groq/OpenRouter free key use karo):
 curl -s -X POST http://127.0.0.1:8080/api/providers/groq/validate \
   -H 'Content-Type: application/json' \
-  -d '{"api_key":"gsk_REAL_KEY"}' 
+  -d '{"api_key":"gsk_REAL_KEY"}'
 # Expect: {"provider":"groq","valid":true}
 
 # Saved key se test (keyring me key save hone par body me api_key bhejne ki zaroorat nahi):
@@ -67,7 +67,7 @@ Key ko securely keyring me save karo; phir validate/test bina `api_key` body ke 
 # Save: Expect 200, {"provider":"groq","saved":true}
 curl -s -X POST http://127.0.0.1:8080/api/providers/groq/key \
   -H 'Content-Type: application/json' \
-  -d '{"api_key":"gsk_REAL_KEY"}' 
+  -d '{"api_key":"gsk_REAL_KEY"}'
 
 # Too short / whitespace key: Expect 400
 curl -s -X POST http://127.0.0.1:8080/api/providers/groq/key \
@@ -89,13 +89,13 @@ curl -s -X DELETE http://127.0.0.1:8080/api/providers/groq/key
 # Fake key: Expect 502 with provider_error
 curl -s -X POST http://127.0.0.1:8080/api/providers/groq/test \
   -H 'Content-Type: application/json' \
-  -d '{"api_key":"gsk_fake_key"}' 
+  -d '{"api_key":"gsk_fake_key"}'
 
 # Real key: Expect 200
 # {"content":"<model ka reply>","input_tokens":N,"output_tokens":N,"cost_usd":X.XXXX}
 curl -s -X POST http://127.0.0.1:8080/api/providers/groq/test \
   -H 'Content-Type: application/json' \
-  -d '{"api_key":"gsk_REAL_KEY"}' 
+  -d '{"api_key":"gsk_REAL_KEY"}'
 ```
 
 > Note: 2026 me Gemini key `AQ.Ab...` format ki hoti hai, jo `generateContent` par abhi

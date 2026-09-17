@@ -17,12 +17,23 @@ fn level_code(level: &BudgetLevel) -> u8 {
     }
 }
 
+fn remaining_code(remaining_pct: f64) -> u8 {
+    if remaining_pct <= 10.0 {
+        2
+    } else if remaining_pct <= 20.0 {
+        1
+    } else {
+        0
+    }
+}
+
 #[derive(Clone)]
 pub struct Scheduler {
     budget: BudgetService,
     usage: UsageService,
     notifications: NotificationService,
     last_level: Arc<AtomicU8>,
+    last_remaining: Arc<AtomicU8>,
 }
 
 impl Scheduler {
@@ -36,6 +47,7 @@ impl Scheduler {
             usage,
             notifications,
             last_level: Arc::new(AtomicU8::new(0)),
+            last_remaining: Arc::new(AtomicU8::new(0)),
         }
     }
     pub fn last_level(&self) -> u8 {
@@ -81,6 +93,42 @@ impl Scheduler {
         };
         let new_code = level_code(&check.level);
         let old_code = self.last_level.swap(new_code, Ordering::SeqCst);
+
+        let new_rcode = remaining_code(check.monthly_remaining_pct);
+        let old_rcode = self.last_remaining.swap(new_rcode, Ordering::SeqCst);
+        if new_rcode != old_rcode {
+            match new_rcode {
+                2 => {
+                    self.notifications
+                        .notify(
+                            "API CostGuard — Monthly Budget Nearly Spent",
+                            &format!(
+                                "{:.0}% of the monthly budget remains (${:.2} left of ${:.2}). Plan the next session carefully.",
+                                check.monthly_remaining_pct.max(0.0),
+                                (check.budget.monthly_limit_usd - check.budget.current_spend_usd).max(0.0),
+                                check.budget.monthly_limit_usd
+                            ),
+                            NotificationLevel::Critical,
+                        )
+                        .await;
+                }
+                1 => {
+                    self.notifications
+                        .notify(
+                            "API CostGuard — Monthly Budget Low",
+                            &format!(
+                                "Only {:.0}% of the monthly budget remains (${:.2} left).",
+                                check.monthly_remaining_pct.max(0.0),
+                                (check.budget.monthly_limit_usd - check.budget.current_spend_usd)
+                                    .max(0.0)
+                            ),
+                            NotificationLevel::Warning,
+                        )
+                        .await;
+                }
+                _ => {}
+            }
+        }
 
         if new_code == old_code {
             return;

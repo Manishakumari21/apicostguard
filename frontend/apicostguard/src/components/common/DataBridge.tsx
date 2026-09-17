@@ -60,9 +60,7 @@ export default function DataBridge() {
       try {
         const events = await getUsage();
         if (!stopped) usageDispatch({ type: "SET_EVENTS", payload: events });
-      } catch {
-        /* keep defaults */
-      }
+      } catch {}
     }
 
     async function loadProviders() {
@@ -76,18 +74,14 @@ export default function DataBridge() {
             payload: Array.from(new Set([...fromBackend, ...fromKeys])),
           });
         }
-      } catch {
-        /* keep defaults */
-      }
+      } catch {}
     }
 
     async function loadNotifications() {
       try {
         const items = await getNotifications();
         if (!stopped) notifDispatch({ type: "SET_NOTIFICATIONS", payload: items });
-      } catch {
-        /* keep defaults */
-      }
+      } catch {}
     }
 
     loadSettings();

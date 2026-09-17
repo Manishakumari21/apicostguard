@@ -54,12 +54,27 @@ export function loadApiKeys(): ApiKey[] {
     const raw = localStorage.getItem(API_KEYS_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as unknown;
-    return Array.isArray(parsed) ? (parsed as ApiKey[]) : [];
+    const items = Array.isArray(parsed) ? (parsed as Partial<ApiKey>[]) : [];
+    return items
+      .filter((k) => k && typeof k.provider === "string")
+      .map((k) => ({
+        id: k.id ?? "",
+        provider: k.provider as string,
+        createdAt: k.createdAt ?? new Date().toISOString(),
+        lastUsed: k.lastUsed,
+      }))
+      .filter((k) => !("key" in k));
   } catch {
     return [];
   }
 }
 
 export function saveApiKeys(keys: ApiKey[]): void {
-  localStorage.setItem(API_KEYS_KEY, JSON.stringify(keys));
+  const safe = keys.map(({ id, provider, createdAt, lastUsed }) => ({
+    id,
+    provider,
+    createdAt,
+    lastUsed,
+  }));
+  localStorage.setItem(API_KEYS_KEY, JSON.stringify(safe));
 }

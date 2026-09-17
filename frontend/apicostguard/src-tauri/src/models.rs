@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase")]
 pub struct BudgetSettings {
     pub daily_limit: f64,
+    pub weekly_limit: f64,
     pub monthly_limit: f64,
     pub currency: String,
 }
@@ -12,6 +13,7 @@ impl Default for BudgetSettings {
     fn default() -> Self {
         Self {
             daily_limit: 10.0,
+            weekly_limit: 40.0,
             monthly_limit: 200.0,
             currency: "USD".into(),
         }

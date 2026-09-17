@@ -6,11 +6,10 @@ import {
   exportApiKeysJson,
   getApiKeys,
   importApiKeysJson,
-  maskKey,
   removeApiKey,
   removeKeyFromBackend,
   saveKeyToBackend,
-  testApiKey,
+  testStoredApiKey,
   touchApiKey,
 } from "../services/apiKeys";
 import type { ApiKey } from "../types/apiKey";
@@ -28,7 +27,6 @@ export default function APIKeys() {
   const [keyValue, setKeyValue] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
-  const [revealed, setRevealed] = useState<Set<string>>(new Set());
   const [notice, setNotice] = useState<string | null>(null);
 
   function refresh() {
@@ -40,8 +38,12 @@ export default function APIKeys() {
       setError("Key looks too short — paste the full API key.");
       return;
     }
-    await saveKeyToBackend(provider, keyValue);
-    addApiKey(provider, keyValue);
+    const saved = await saveKeyToBackend(provider, keyValue);
+    if (!saved) {
+      setError("Could not save key to the gateway. Is the gateway running?");
+      return;
+    }
+    addApiKey(provider);
     addConnectedProvider(provider);
     setKeyValue("");
     setError(null);
@@ -56,15 +58,6 @@ export default function APIKeys() {
     refresh();
   }
 
-  function handleReveal(id: string) {
-    setRevealed((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
   async function handleTest(id: string) {
     setTestingId(id);
     const entry = keys.find((k) => k.id === id);
@@ -72,7 +65,7 @@ export default function APIKeys() {
       setTestingId(null);
       return;
     }
-    const ok = await testApiKey(entry.provider, entry.key);
+    const ok = await testStoredApiKey(entry.provider);
     if (ok) touchApiKey(id);
     setNotice(ok ? `✓ ${entry.provider} key is valid` : `✕ ${entry.provider} key check failed`);
     setTestingId(null);
@@ -99,7 +92,7 @@ export default function APIKeys() {
         const count = importApiKeysJson(text);
         const imported = getApiKeys();
         imported.forEach((k) => addConnectedProvider(k.provider));
-        setNotice(`Imported ${count} key(s).`);
+        setNotice(`Imported ${count} key reference(s).`);
         refresh();
       })
       .catch(() => setError("Invalid API keys file."))
@@ -112,13 +105,13 @@ export default function APIKeys() {
   const connectedCount = connectedProviders.length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 fade-up">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-ink">API Keys</h1>
           <p className="text-sm text-muted mt-0.5">
-            Cloud provider keys are stored locally on this machine. Never leave
-            your device.
+            Keys are stored in your OS credential store — never in your browser
+            or app storage.
           </p>
         </div>
         <div className="flex gap-2">
@@ -169,7 +162,6 @@ export default function APIKeys() {
 
         {keys.map((k) => {
           const color = getProviderColor(k.provider);
-          const show = revealed.has(k.id);
           return (
             <div key={k.id} className="card p-4">
               <div className="flex items-start justify-between gap-3">
@@ -183,7 +175,7 @@ export default function APIKeys() {
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-ink">{k.provider}</p>
                     <p className="text-xs font-mono text-muted truncate">
-                      {show ? k.key : maskKey(k.key)}
+                      Stored in OS keychain
                     </p>
                   </div>
                 </div>
@@ -204,9 +196,6 @@ export default function APIKeys() {
                   Added {new Date(k.createdAt).toLocaleDateString()}
                 </span>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="ghost" onClick={() => handleReveal(k.id)}>
-                    {show ? "Hide" : "Show"}
-                  </Button>
                   <Button
                     size="sm"
                     variant="secondary"
@@ -241,9 +230,9 @@ export default function APIKeys() {
           </span>
         </div>
         <p className="text-xs text-faint mt-3">
-          Keys are only used to display and manage cloud provider configuration
-          in this MVP. For real encryption support, keys would be secured via the
-          OS keychain.
+          Keys are persisted in the OS credential store (macOS Keychain,
+          Windows Credential Vault, or an encrypted file on Linux) and never
+          leave your device.
         </p>
       </div>
 
@@ -272,6 +261,10 @@ export default function APIKeys() {
               placeholder="sk-••••••••"
               className="input"
             />
+            <span className="block text-[10px] text-faint mt-1">
+              Saved to your OS keychain. We never persist raw keys in app
+              storage.
+            </span>
           </label>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>

@@ -26,7 +26,12 @@ pub fn send(app: &AppHandle, state: &AppState, type_: &str, title: &str, message
     }
 
     use tauri_plugin_notification::NotificationExt;
-    let _ = app.notification().builder().title(title).body(message).show();
+    let _ = app
+        .notification()
+        .builder()
+        .title(title)
+        .body(message)
+        .show();
 }
 
 pub fn check_budget(app: &AppHandle, state: &AppState) {
@@ -73,7 +78,10 @@ pub fn check_budget(app: &AppHandle, state: &AppState) {
         if t == 0 {
             continue;
         }
-        for (label, pct, bucket) in [("Daily", daily_pct, day_key.clone()), ("Monthly", monthly_pct, month_key.clone())] {
+        for (label, pct, bucket) in [
+            ("Daily", daily_pct, day_key.clone()),
+            ("Monthly", monthly_pct, month_key.clone()),
+        ] {
             let key = format!("{}-{}-{}", label, t, bucket);
             if pct >= t as f64 && !fired.contains(&key) {
                 fired.insert(key);
@@ -82,7 +90,11 @@ pub fn check_budget(app: &AppHandle, state: &AppState) {
                     "You've used {:.2}% of the {} budget (${:.2} spent).",
                     pct,
                     label.to_lowercase(),
-                    if label == "Daily" { day_cost } else { month_cost }
+                    if label == "Daily" {
+                        day_cost
+                    } else {
+                        month_cost
+                    }
                 );
                 send(app, state, "budget", &title, &message);
             }

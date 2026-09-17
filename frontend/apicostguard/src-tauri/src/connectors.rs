@@ -35,24 +35,28 @@ pub fn probe(client: &reqwest::blocking::Client, server: &LocalServer) -> Server
     };
 
     let (endpoint, parse): (&str, fn(&str) -> Vec<String>) = match server.id {
-        "ollama" => ("/api/ps", parsers::parse_ollama_ps as fn(&str) -> Vec<String>),
-        _ => ("/v1/models", parsers::parse_lmstudio_models as fn(&str) -> Vec<String>),
+        "ollama" => (
+            "/api/ps",
+            parsers::parse_ollama_ps as fn(&str) -> Vec<String>,
+        ),
+        _ => (
+            "/v1/models",
+            parsers::parse_lmstudio_models as fn(&str) -> Vec<String>,
+        ),
     };
 
     match client
         .get(format!("{}{}", server.base_url, endpoint))
         .send()
     {
-        Ok(resp) if resp.status().is_success() => {
-            match resp.text() {
-                Ok(body) => {
-                    status.running_models = parse(&body);
-                    status.connected = true;
-                    status.last_seen = Some(now);
-                }
-                Err(e) => status.error = Some(e.to_string()),
+        Ok(resp) if resp.status().is_success() => match resp.text() {
+            Ok(body) => {
+                status.running_models = parse(&body);
+                status.connected = true;
+                status.last_seen = Some(now);
             }
-        }
+            Err(e) => status.error = Some(e.to_string()),
+        },
         Ok(resp) => status.error = Some(format!("HTTP {}", resp.status())),
         Err(e) => status.error = Some(e.to_string()),
     }

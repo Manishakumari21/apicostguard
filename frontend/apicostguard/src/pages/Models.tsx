@@ -1,122 +1,153 @@
-import { useProviderAggregates } from "../hooks/useMonitor";
-import { useSettings } from "../context/SettingsContext";
-import { PROVIDERS } from "../utils/constants";
-import { formatCost, formatTokens } from "../utils/formatter";
+import { useMemo, useState } from "react";
+import { getModelOverviews, filterModels } from "../services/modelService";
+import { useGatewayQuery } from "../hooks/useGatewayQuery";
+import PageHeader from "../components/ui/PageHeader";
+import Panel from "../components/ui/Panel";
+import FilterBar from "../components/ui/FilterBar";
+import DataState from "../components/ui/DataState";
+import { formatCost, formatDuration, formatTokens, formatPercent } from "../utils/format";
+
+type SortKey = "cost" | "requests" | "tokens" | "latencyMs" | "errorRate";
 
 export default function Models() {
-  const aggregates = useProviderAggregates();
-  const { connectedProviders } = useSettings();
+  const [query, setQuery] = useState("");
+  const [provider, setProvider] = useState("all");
+  const [sortKey, setSortKey] = useState<SortKey>("cost");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
-  const byId = new Map(aggregates.map((a) => [a.name.toLowerCase(), a]));
-
-  const isConnected = (p: (typeof PROVIDERS)[number]) =>
-    connectedProviders.some(
-      (c) => c.toLowerCase() === p.id || c.toLowerCase() === p.name.toLowerCase()
-    );
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-ink">Models</h1>
-        <p className="text-sm text-muted mt-0.5">
-          Cost and usage per provider, from every tracked request.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {PROVIDERS.map((p) => {
-          const agg = byId.get(p.id.toLowerCase());
-          const connected = isConnected(p);
-          return (
-            <div key={p.name} className="card p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <span
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0"
-                    style={{
-                      backgroundColor: `${p.color}18`,
-                      border: `1px solid ${p.color}30`,
-                    }}
-                  >
-                    {p.icon}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-ink">{p.name}</p>
-                    <p className="text-[10px] uppercase tracking-wider text-faint">
-                      {p.kind}
-                    </p>
-                  </div>
-                </div>
-                <span
-                  className={`px-2 py-0.5 text-[10px] font-semibold rounded-full border shrink-0 ${
-                    agg && agg.requests > 0
-                      ? "text-success border-success/30 bg-success/10"
-                      : connected
-                        ? "text-accent border-accent/30 bg-accent/10"
-                        : "text-faint border-line"
-                  }`}
-                >
-                  {agg && agg.requests > 0
-                    ? "Active"
-                    : connected
-                      ? "Connected"
-                      : "Idle"}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 mt-4">
-                <Metric label="API Status" value={agg && agg.requests > 0 ? "Online" : "Idle"} color="#22c55e" />
-                <Metric label="Monthly Cost" value={formatCost(agg?.monthCost ?? 0)} color="#22d3ee" />
-                <Metric label="Today's Cost" value={formatCost(agg?.todayCost ?? 0)} color="#67e8f9" />
-                <Metric label="Models Used" value={(agg?.models.length ?? 0).toString()} color="#8b5cf6" />
-              </div>
-
-              {agg && agg.models.length > 0 && (
-                <div className="mt-4 pt-3 border-t border-line/50">
-                  <p className="text-[10px] uppercase tracking-wider text-faint mb-2">
-                    Models
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {agg.models.map((m) => (
-                      <span
-                        key={m}
-                        className="px-2 py-0.5 text-[10px] rounded-md bg-canvas/60 border border-line text-muted"
-                      >
-                        {m}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {agg && agg.requests > 0 && (
-                <p className="text-[11px] text-faint mt-3">
-                  {agg.requests} requests · {formatTokens(agg.tokens)} tokens
-                </p>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
+  const { data, error, loading, refetch } = useGatewayQuery(
+    () => getModelOverviews(),
+    ["models"],
+    15000
   );
-}
 
-function Metric({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: string;
-  color: string;
-}) {
+  const models = data ?? [];
+  const providers = useMemo(
+    () => Array.from(new Set(models.map((m) => m.provider))).sort(),
+    [models]
+  );
+
+  const filtered = useMemo(
+    () => filterModels(models, query, provider, { key: sortKey, dir: sortDir }),
+    [models, query, provider, sortKey, sortDir]
+  );
+
+  const maxCost = useMemo(() => Math.max(...models.map((m) => m.cost), 1), [models]);
+
+  const toggleSort = (key: SortKey) => {
+    if (key === sortKey) setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+    else {
+      setSortKey(key);
+      setSortDir("desc");
+    }
+  };
+
+  const headers: { key: SortKey; label: string }[] = [
+    { key: "cost", label: "Cost" },
+    { key: "requests", label: "Requests" },
+    { key: "tokens", label: "Tokens" },
+    { key: "latencyMs", label: "Latency" },
+    { key: "errorRate", label: "Error rate" },
+  ];
+
   return (
-    <div className="rounded-xl bg-canvas/50 border border-line/50 px-3 py-2.5">
-      <p className="text-[10px] text-faint mb-0.5">{label}</p>
-      <p className="text-sm font-semibold tabular-nums" style={{ color }}>
-        {value}
-      </p>
+    <div>
+      <PageHeader
+        title="Models"
+        description="Per-model usage across providers, sorted and filterable."
+      />
+
+      <div className="space-y-3">
+        <FilterBar
+          search={{ value: query, onChange: setQuery, placeholder: "Search models…" }}
+          filters={[
+            {
+              key: "provider",
+              label: "Provider",
+              value: provider,
+              onChange: (_k, v) => setProvider(v),
+              options: [
+                { value: "all", label: "All" },
+                ...providers.map((p) => ({ value: p, label: p })),
+              ],
+            },
+          ]}
+          onReset={() => {
+            setQuery("");
+            setProvider("all");
+          }}
+          resultCount={filtered.length}
+        />
+
+        <Panel pad={false}>
+          <DataState
+            loading={loading}
+            error={error}
+            hasData={models.length > 0}
+            onRetry={refetch}
+            emptyTitle="No models seen yet"
+            emptyDescription="Model usage appears here as soon as the gateway routes requests."
+          >
+            <div className="overflow-auto max-h-[calc(100vh-280px)] p-0">
+              <table className="w-full text-left text-sm">
+                <thead className="sticky top-0 z-10 bg-card">
+                  <tr className="text-[10px] uppercase tracking-wider text-muted">
+                    <th className="font-semibold px-4 py-2.5">Model</th>
+                    <th className="font-semibold px-4 py-2.5">Provider</th>
+                    {headers.map((h) => (
+                      <th key={h.key} className="px-4 py-2.5">
+                        <button
+                          onClick={() => toggleSort(h.key)}
+                          className={`cursor-pointer inline-flex items-center gap-1 font-semibold hover:text-ink transition-colors ${
+                            sortKey === h.key ? "text-accent" : ""
+                          }`}
+                        >
+                          {h.label}
+                          <span className="text-[9px]">
+                            {sortKey === h.key ? (sortDir === "desc" ? "↓" : "↑") : "↕"}
+                          </span>
+                        </button>
+                      </th>
+                    ))}
+                    <th className="font-semibold px-4 py-2.5 text-right">Share</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((m) => {
+                    const sharePct = (m.cost / maxCost) * 100;
+                    return (
+                      <tr key={m.name} className="border-t border-line/50 hover:bg-line/15 transition-colors">
+                        <td className="px-4 py-2.5 font-mono text-xs text-ink">{m.name}</td>
+                        <td className="px-4 py-2.5 text-muted">{m.provider}</td>
+                        <td className="px-4 py-2.5 font-semibold tabular-nums">{formatCost(m.cost)}</td>
+                        <td className="px-4 py-2.5 text-muted tabular-nums">{m.requests.toLocaleString()}</td>
+                        <td className="px-4 py-2.5 text-muted tabular-nums">{formatTokens(m.tokens)}</td>
+                        <td className="px-4 py-2.5 text-muted tabular-nums">{formatDuration(m.latencyMs)}</td>
+                        <td className={`px-4 py-2.5 tabular-nums ${m.errorRate > 10 ? "text-danger" : "text-muted"}`}>
+                          {m.errorRate.toFixed(1)}%
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <div className="w-16 h-1.5 rounded-full bg-line/50 overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-accent/80 transition-all"
+                                style={{ width: `${Math.min(sharePct, 100)}%` }}
+                              />
+                            </div>
+                            <span className="text-[10px] text-faint tabular-nums w-9 text-right">
+                              {formatPercent(m.cost, maxCost)}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </DataState>
+        </Panel>
+      </div>
     </div>
   );
 }

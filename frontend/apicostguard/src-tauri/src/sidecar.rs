@@ -13,8 +13,6 @@ pub const BACKEND_BASE_URL: &str = "http://127.0.0.1:8080";
 const HEALTH_TIMEOUT: Duration = Duration::from_secs(2);
 const STARTUP_DEADLINE: Duration = Duration::from_secs(20);
 
-/// Starts the bundled backend gateway if one is not already running.
-/// Reuses an already-healthy backend on the default port.
 pub fn start(app: &tauri::AppHandle, state: &Arc<AppState>) {
     let handle = app.clone();
     let state = state.clone();
@@ -39,7 +37,6 @@ pub fn start(app: &tauri::AppHandle, state: &Arc<AppState>) {
     });
 }
 
-/// Stops the bundled backend gateway if this app started it.
 pub fn stop(state: &Arc<AppState>) {
     if let Some(child) = state.backend_child.lock().unwrap().take() {
         let _ = child.kill();

@@ -1,3 +1,5 @@
+pub mod gateway;
+
 use std::collections::HashMap;
 
 use crate::models::{ServerStatus, ToolInfo, UsageEvent};

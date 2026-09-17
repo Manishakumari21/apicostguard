@@ -47,6 +47,7 @@ pub fn build_router(state: AppState) -> Router {
         .route("/api/budgets", get(budget::list_budgets))
         .route("/budgets", post(budget::save_budget))
         .route("/api/budgets", post(budget::save_budget))
+        .route("/api/budgets/:id", delete(budget::delete_budget))
         .route("/api/budget", get(budget::get_budget))
         .route("/api/settings", get(settings::get_settings))
         .route("/api/settings", post(settings::update_settings))

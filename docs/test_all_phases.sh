@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# APICostGuard — All Phases Line-by-Line Test
-# Server: http://127.0.0.1:8080  (backend start: cd backend && cargo run)
-# NOTE: /proxy ollama test ke liye mock server chahiye:
-#       python3 /tmp/opencode/mock_ollama.py  (port 11434)
 
 B=http://127.0.0.1:8080
 J='Content-Type: application/json'

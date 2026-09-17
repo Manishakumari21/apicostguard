@@ -32,9 +32,8 @@ fn client() -> reqwest::blocking::Client {
 
 #[test]
 fn parses_ollama_ps() {
-    let models = parsers::parse_ollama_ps(
-        r#"{"models":[{"model":"llama3.1:8b"},{"model":"qwen2.5:7b"}]}"#,
-    );
+    let models =
+        parsers::parse_ollama_ps(r#"{"models":[{"model":"llama3.1:8b"},{"model":"qwen2.5:7b"}]}"#);
     assert_eq!(models, vec!["llama3.1:8b", "qwen2.5:7b"]);
 }
 

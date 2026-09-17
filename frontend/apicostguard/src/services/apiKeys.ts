@@ -7,11 +7,10 @@ export function getApiKeys(): ApiKey[] {
   return loadApiKeys();
 }
 
-export function addApiKey(provider: string, key: string): ApiKey {
+export function addApiKey(provider: string): ApiKey {
   const entry: ApiKey = {
     id: generateId(),
     provider,
-    key: key.trim(),
     createdAt: new Date().toISOString(),
   };
   const keys = [entry, ...getApiKeys()];
@@ -31,9 +30,8 @@ export function touchApiKey(id: string): void {
   );
 }
 
-export function maskKey(key: string): string {
-  if (key.length <= 8) return "••••••••";
-  return `${key.slice(0, 4)}${"•".repeat(8)}${key.slice(-4)}`;
+export function maskKey(): string {
+  return "••••••••";
 }
 
 export function exportApiKeysJson(): string {
@@ -43,12 +41,20 @@ export function exportApiKeysJson(): string {
 export function importApiKeysJson(json: string): number {
   const parsed = JSON.parse(json) as unknown;
   if (!Array.isArray(parsed)) throw new Error("Invalid API keys file");
-  const valid = (parsed as ApiKey[]).filter(
-    (k) => k && typeof k.provider === "string" && typeof k.key === "string" && k.key.trim().length > 0
+  const valid = (parsed as Partial<ApiKey>[]).filter(
+    (k) => k && typeof k.provider === "string"
   );
   const existing = getApiKeys();
   const merged = [
-    ...valid.map((k) => ({ ...k, id: k.id || generateId() })),
+    ...valid.map((k) => {
+      const provider = k.provider as string;
+      return {
+        id: k.id || generateId(),
+        provider,
+        createdAt: k.createdAt ?? new Date().toISOString(),
+        lastUsed: k.lastUsed,
+      };
+    }),
     ...existing,
   ];
   saveApiKeys(merged);
@@ -87,5 +93,17 @@ export async function testApiKey(provider: string, key: string): Promise<boolean
   } catch {
     await new Promise((r) => setTimeout(r, 400));
     return /^[A-Za-z0-9_\-.]{16,}$/.test(trimmed);
+  }
+}
+
+export async function testStoredApiKey(provider: string): Promise<boolean> {
+  try {
+    const res = await backendPost<BackendValidation>(
+      `/api/providers/${encodeURIComponent(provider)}/validate`,
+      { api_key: "" }
+    );
+    return res.valid;
+  } catch {
+    return false;
   }
 }

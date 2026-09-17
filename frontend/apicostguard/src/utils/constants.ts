@@ -1,3 +1,6 @@
+import type { NotificationType } from "../types/notification";
+import { palette } from "./palette";
+
 export const STORAGE_KEY = "apicostguard_settings";
 export const ONBOARDED_KEY = "apicostguard_onboarded";
 export const EXTRA_SETTINGS_KEY = "apicostguard_extra_settings";
@@ -7,8 +10,13 @@ export const THEME_KEY = "apicostguard_theme";
 export const BUDGET_DEFAULTS = {
   dailyLimit: 10.0,
   weeklyLimit: 40.0,
-  monthlyLimit: 200.0,
+  monthlyLimit: 100.0,
   currency: "USD",
+};
+
+export const REMAINING_THRESHOLDS = {
+  warning: 20,
+  critical: 10,
 };
 
 export const NOTIFICATION_DEFAULTS = {
@@ -17,8 +25,16 @@ export const NOTIFICATION_DEFAULTS = {
   sound: true,
 };
 
-export const THEME_OPTIONS = ["dark", "light", "system"] as const;
-export type Theme = (typeof THEME_OPTIONS)[number];
+export const GATEWAY_DEFAULT_HOST = "localhost";
+export const GATEWAY_DEFAULT_PORT = 8080;
+export const DAYS_PER_MONTH = 30.44;
+
+export function gatewayHttp(
+  host = GATEWAY_DEFAULT_HOST,
+  port = GATEWAY_DEFAULT_PORT
+): string {
+  return `http://${host}:${port}`;
+}
 
 export interface ProviderConfig {
   id: string;
@@ -48,6 +64,19 @@ export const CLOUD_PROVIDERS = PROVIDERS.filter((p) => p.kind === "cloud");
 export const MAX_EVENTS = 1000;
 
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
+  import.meta.env.VITE_API_BASE_URL ?? `http://${GATEWAY_DEFAULT_HOST}:${GATEWAY_DEFAULT_PORT}`;
 
 export const LIVE_FEED_MAX = 6;
+
+export const THEME_CHOICES: { value: "dark" | "light" | "system"; icon: string; label: string }[] = [
+  { value: "dark", icon: "🌙", label: "Dark" },
+  { value: "light", icon: "☀️", label: "Light" },
+  { value: "system", icon: "🖥️", label: "System" },
+];
+
+export const NOTIFICATION_TYPE_META: Record<NotificationType, { icon: string; label: string; color: string }> = {
+  budget: { icon: "🎯", label: "Budget", color: palette.warning },
+  provider: { icon: "🔌", label: "Provider", color: palette.accent },
+  warning: { icon: "⚠️", label: "Warning", color: palette.danger },
+  system: { icon: "🔔", label: "System", color: palette.info },
+};

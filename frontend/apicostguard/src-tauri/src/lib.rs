@@ -22,8 +22,13 @@ pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(state.clone())
         .invoke_handler(tauri::generate_handler![
+            commands::app_info::app_info,
+            commands::gateway::gateway_status,
+            commands::gateway::gateway_request,
             commands::monitor::get_tools,
             commands::monitor::get_usage,
             commands::monitor::get_servers,

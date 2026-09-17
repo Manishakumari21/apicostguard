@@ -12,8 +12,8 @@ The desktop app bundles everything — the dashboard *and* the local gateway. On
 install, nothing to run from a terminal.
 
 1. **Install the app** — grab the installer for your OS from the
-   [Releases](https://github.com/anomalyco/opencode/releases) page
-   (`.deb`/`.AppImage` on Linux, `.dmg` on macOS, `.msi`/`.exe` on Windows).
+   [Releases](https://github.com/Manishakumari21/apicostguard/releases) page
+   (`.deb`/`.AppImage` on Linux, `.dmg` on macOS, `.exe` on Windows).
 2. **Launch APICostGuard** — it starts the local gateway automatically (an icon
    appears in your system tray; closing the window keeps it running).
 3. **Add your API keys** — open **API Keys** in the app, pick a provider
@@ -362,10 +362,15 @@ pointing AI tools at the gateway, and troubleshooting.
 
 ## CI / Releases
 
-- `.github/workflows/ci.yml` — runs `cargo fmt`, `cargo clippy -D warnings`, `cargo test`,
-  and the frontend typecheck + production build on every push/PR.
-- `.github/workflows/release.yml` — builds desktop installers on a `v*` tag push.
+- `.github/workflows/release.yml` — triggered on a `v*` tag push; builds the sidecar gateway
+  plus desktop installers on Linux, Windows, and macOS and publishes a draft
+  GitHub Release with the `latest.json` updater feed.
+- The in-app Download and "Check for updates" sections are wired to GitHub
+  Releases — they work automatically once releases are published.
 - Secrets (`backend/.env`, `*.db`, `*.key`, `*.enc`) are gitignored and never committed.
+
+For the full release pipeline (signing key, GitHub secrets, tagging steps,
+testing updates) see **[RELEASE.md](RELEASE.md)**.
 
 ## Tests & Verification
 

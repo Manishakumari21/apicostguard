@@ -1,50 +1,111 @@
-name: Release
+name: "Release"
 
 on:
   push:
-    tags: ["v*"]
-
-permissions:
-  contents: write
+    tags:
+      - "v*"
+  workflow_dispatch:
 
 jobs:
   release:
-    name: Build installers
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend/apicostguard
-    steps:
-      - uses: actions/checkout@v4
+    permissions:
+      contents: write
 
-      - uses: actions/setup-node@v4
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            tauri-target: ""
+            bin-ext: ""
+            sidecar-name: apicostguard_backend-x86_64-unknown-linux-gnu
+
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+            tauri-target: ""
+            bin-ext: ".exe"
+            sidecar-name: apicostguard_backend-x86_64-pc-windows-msvc.exe
+
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+            tauri-target: "--target aarch64-apple-darwin"
+            bin-ext: ""
+            sidecar-name: apicostguard_backend-aarch64-apple-darwin
+
+          - platform: macos-latest
+            target: x86_64-apple-darwin
+            tauri-target: "--target x86_64-apple-darwin"
+            bin-ext: ""
+            sidecar-name: apicostguard_backend-x86_64-apple-darwin
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Linux system dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: lts/*
           cache: npm
           cache-dependency-path: frontend/apicostguard/package-lock.json
 
-      - name: Install Linux build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev \
-            librsvg2-dev patchelf
-
-      - name: Install Rust toolchain
+      - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
-
-      - uses: swatinem/rust-cache@v2
         with:
-          workspaces: frontend/apicostguard/src-tauri
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        uses: swatinen/rust-cache@v2
+        with:
+          workspaces: |
+            backend
+            frontend/apicostguard/src-tauri
 
       - name: Install frontend dependencies
         run: npm ci
+        working-directory: frontend/apicostguard
 
-      - name: Build and attach installers to the release
+      - name: Build sidecar gateway backend (${{ matrix.target }})
+        run: cargo build --release --target ${{ matrix.target }}
+        working-directory: backend
+
+      - name: Stage sidecar for Tauri bundling
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p frontend/apicostguard/src-tauri/bin
+
+          cp \
+            "backend/target/${{ matrix.target }}/release/apicostguard_backend${{ matrix.bin-ext }}" \
+            "frontend/apicostguard/src-tauri/bin/${{ matrix.sidecar-name }}"
+
+          ls -la frontend/apicostguard/src-tauri/bin
+
+      - name: Build App and publish to GitHub Release
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "APICostGuard ${{ github.ref_name }}"
+          projectPath: frontend/apicostguard
+          tagName: v__VERSION__
+          releaseName: "APICostGuard v__VERSION__"
+          releaseBody: "APICostGuard v__VERSION__ — see the assets to download and install."
           releaseDraft: true
           prerelease: false
+          args: ${{ matrix.tauri-target }}

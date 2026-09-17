@@ -48,6 +48,12 @@ impl SettingsService {
                 .await?
                 .and_then(|v| Self::parse(&v))
                 .unwrap_or(defaults.daily_limit_usd),
+            weekly_limit_usd: self
+                .repo
+                .get_setting("weekly_limit_usd")
+                .await?
+                .and_then(|v| Self::parse(&v))
+                .unwrap_or(defaults.weekly_limit_usd),
             alert_threshold_percent: self
                 .repo
                 .get_setting("alert_threshold_percent")
@@ -72,6 +78,9 @@ impl SettingsService {
             .await?;
         self.repo
             .set_setting("daily_limit_usd", &settings.daily_limit_usd.to_string())
+            .await?;
+        self.repo
+            .set_setting("weekly_limit_usd", &settings.weekly_limit_usd.to_string())
             .await?;
         self.repo
             .set_setting(

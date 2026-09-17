@@ -1,3 +1,4 @@
+use chrono::Datelike;
 use chrono::Utc;
 use rusqlite::{params, Row};
 use uuid::Uuid;
@@ -14,6 +15,51 @@ use crate::models::provider::RegisteredProvider;
 
 fn now() -> String {
     Utc::now().to_rfc3339()
+}
+
+pub(crate) fn month_range(month: &str) -> AppResult<(String, String)> {
+    let (y, m) = month
+        .split_once('-')
+        .and_then(|(y, m)| m.parse::<u32>().ok().map(|m| (y, m)))
+        .ok_or_else(|| AppError::Internal(anyhow::anyhow!("invalid month '{month}'")))?;
+    let year = y
+        .parse::<i32>()
+        .map_err(|e| AppError::Internal(anyhow::anyhow!("invalid month '{month}': {e}")))?;
+    let start = chrono::NaiveDate::from_ymd_opt(year, m, 1)
+        .ok_or_else(|| AppError::Internal(anyhow::anyhow!("invalid month '{month}'")))?;
+    let end = next_month(&start);
+    Ok((
+        start.and_hms_opt(0, 0, 0).unwrap().and_utc().to_rfc3339(),
+        end.and_hms_opt(0, 0, 0).unwrap().and_utc().to_rfc3339(),
+    ))
+}
+
+fn day_range(day: &str) -> AppResult<(String, String)> {
+    let start = chrono::NaiveDate::parse_from_str(day, "%Y-%m-%d")
+        .map_err(|e| AppError::Internal(anyhow::anyhow!("invalid day '{day}': {e}")))?;
+    let end = start + chrono::Duration::days(1);
+    Ok((
+        start.and_hms_opt(0, 0, 0).unwrap().and_utc().to_rfc3339(),
+        end.and_hms_opt(0, 0, 0).unwrap().and_utc().to_rfc3339(),
+    ))
+}
+
+fn week_range_from_start(week_start: &str) -> AppResult<(String, String)> {
+    let start = chrono::DateTime::parse_from_rfc3339(week_start)
+        .map(|dt| dt.with_timezone(&chrono::Utc))
+        .map_err(|e| {
+            AppError::Internal(anyhow::anyhow!("invalid week_start '{week_start}': {e}"))
+        })?;
+    let end = start + chrono::Duration::days(7);
+    Ok((start.to_rfc3339(), end.to_rfc3339()))
+}
+
+fn next_month(date: &chrono::NaiveDate) -> chrono::NaiveDate {
+    if date.month() == 12 {
+        chrono::NaiveDate::from_ymd_opt(date.year() + 1, 1, 1).unwrap()
+    } else {
+        chrono::NaiveDate::from_ymd_opt(date.year(), date.month() + 1, 1).unwrap()
+    }
 }
 
 fn map_row(row: &Row) -> rusqlite::Result<UsageLog> {
@@ -159,11 +205,12 @@ impl Repository {
     }
 
     pub async fn monthly_cost(&self, month: &str) -> AppResult<f64> {
-        let prefix = format!("{month}-");
+        let (start, end) = month_range(month)?;
         self.with_conn(move |conn| {
             conn.query_row(
-                "SELECT COALESCE(SUM(cost), 0.0) FROM usage_logs WHERE created_at LIKE ?1",
-                params![format!("{prefix}%")],
+                "SELECT COALESCE(SUM(cost), 0.0) FROM usage_logs
+                 WHERE created_at >= ?1 AND created_at < ?2",
+                params![start, end],
                 |row| row.get(0),
             )
             .map_err(|e| AppError::Database(e.to_string()))
@@ -172,11 +219,12 @@ impl Repository {
     }
 
     pub async fn daily_cost(&self, day: &str) -> AppResult<f64> {
-        let prefix = format!("{day}T");
+        let (start, end) = day_range(day)?;
         self.with_conn(move |conn| {
             conn.query_row(
-                "SELECT COALESCE(SUM(cost), 0.0) FROM usage_logs WHERE created_at LIKE ?1",
-                params![format!("{prefix}%")],
+                "SELECT COALESCE(SUM(cost), 0.0) FROM usage_logs
+                 WHERE created_at >= ?1 AND created_at < ?2",
+                params![start, end],
                 |row| row.get(0),
             )
             .map_err(|e| AppError::Database(e.to_string()))
@@ -184,12 +232,60 @@ impl Repository {
         .await
     }
 
-    pub async fn monthly_requests(&self, month: &str) -> AppResult<u64> {
-        let prefix = format!("{month}-");
+    pub async fn weekly_cost(&self, week_start: &str) -> AppResult<f64> {
+        let (start, end) = week_range_from_start(week_start)?;
         self.with_conn(move |conn| {
             conn.query_row(
-                "SELECT COUNT(*) FROM usage_logs WHERE created_at LIKE ?1",
-                params![format!("{prefix}%")],
+                "SELECT COALESCE(SUM(cost), 0.0) FROM usage_logs
+                 WHERE created_at >= ?1 AND created_at < ?2",
+                params![start, end],
+                |row| row.get(0),
+            )
+            .map_err(|e| AppError::Database(e.to_string()))
+        })
+        .await
+    }
+
+    pub async fn cost_between(
+        &self,
+        start: &str,
+        end: &str,
+        scope: Option<(&str, Option<&str>)>,
+    ) -> AppResult<f64> {
+        let start = start.to_string();
+        let end = end.to_string();
+        let mut sql = "SELECT COALESCE(SUM(cost), 0.0) FROM usage_logs WHERE created_at >= ?1 AND created_at < ?2".to_string();
+        let mut values: Vec<rusqlite::types::Value> = vec![
+            rusqlite::types::Value::Text(start.clone()),
+            rusqlite::types::Value::Text(end.clone()),
+        ];
+        if let Some((kind, Some(id))) = scope {
+            if kind == "provider" {
+                sql.push_str(" AND provider = ?3");
+                values.push(rusqlite::types::Value::Text(id.to_string()));
+            } else if kind == "project" {
+                sql.push_str(" AND project_id = ?3");
+                values.push(rusqlite::types::Value::Text(id.to_string()));
+            }
+        }
+        self.with_conn(move |conn| {
+            let mut stmt = conn
+                .prepare(&sql)
+                .map_err(|e| AppError::Database(e.to_string()))?;
+            let result = stmt.query_row(rusqlite::params_from_iter(values), |row| {
+                row.get::<_, f64>(0)
+            });
+            result.map_err(|e| AppError::Database(e.to_string()))
+        })
+        .await
+    }
+
+    pub async fn monthly_requests(&self, month: &str) -> AppResult<u64> {
+        let (start, end) = month_range(month)?;
+        self.with_conn(move |conn| {
+            conn.query_row(
+                "SELECT COUNT(*) FROM usage_logs WHERE created_at >= ?1 AND created_at < ?2",
+                params![start, end],
                 |row| row.get(0),
             )
             .map_err(|e| AppError::Database(e.to_string()))
@@ -198,11 +294,12 @@ impl Repository {
     }
 
     pub async fn monthly_tokens(&self, month: &str) -> AppResult<u64> {
-        let prefix = format!("{month}-");
+        let (start, end) = month_range(month)?;
         self.with_conn(move |conn| {
             conn.query_row(
-                "SELECT COALESCE(SUM(input_tokens + output_tokens), 0) FROM usage_logs WHERE created_at LIKE ?1",
-                params![format!("{prefix}%")],
+                "SELECT COALESCE(SUM(input_tokens + output_tokens), 0) FROM usage_logs
+                 WHERE created_at >= ?1 AND created_at < ?2",
+                params![start, end],
                 |row| row.get(0),
             )
             .map_err(|e| AppError::Database(e.to_string()))
@@ -211,11 +308,12 @@ impl Repository {
     }
 
     pub async fn daily_tokens(&self, day: &str) -> AppResult<u64> {
-        let prefix = format!("{day}T");
+        let (start, end) = day_range(day)?;
         self.with_conn(move |conn| {
             conn.query_row(
-                "SELECT COALESCE(SUM(input_tokens + output_tokens), 0) FROM usage_logs WHERE created_at LIKE ?1",
-                params![format!("{prefix}%")],
+                "SELECT COALESCE(SUM(input_tokens + output_tokens), 0) FROM usage_logs
+                 WHERE created_at >= ?1 AND created_at < ?2",
+                params![start, end],
                 |row| row.get(0),
             )
             .map_err(|e| AppError::Database(e.to_string()))
@@ -471,19 +569,29 @@ impl Repository {
         monthly_limit_usd: f64,
         alert_threshold_percent: u32,
         month: &str,
+        scope: &str,
+        scope_id: Option<&str>,
     ) -> AppResult<()> {
-        let (id, name, month) = (id.to_string(), name.to_string(), month.to_string());
+        let (id, name, month, scope) = (
+            id.to_string(),
+            name.to_string(),
+            month.to_string(),
+            scope.to_string(),
+        );
+        let scope_id = scope_id.map(String::from);
         self.with_conn(move |conn| {
             conn.execute(
-                "INSERT INTO budgets (id, name, monthly_limit_usd, alert_threshold_percent, current_spend_usd, month, created_at, updated_at)
-                 VALUES (?1, ?2, ?3, ?4, 0.0, ?5, ?6, ?6)
+                "INSERT INTO budgets (id, name, monthly_limit_usd, alert_threshold_percent, current_spend_usd, month, scope, scope_id, created_at, updated_at)
+                 VALUES (?1, ?2, ?3, ?4, 0.0, ?5, ?6, ?7, ?8, ?8)
                  ON CONFLICT(id) DO UPDATE SET
                     name = excluded.name,
                     monthly_limit_usd = excluded.monthly_limit_usd,
                     alert_threshold_percent = excluded.alert_threshold_percent,
                     month = excluded.month,
+                    scope = excluded.scope,
+                    scope_id = excluded.scope_id,
                     updated_at = excluded.updated_at",
-                params![id, name, monthly_limit_usd, alert_threshold_percent, month, now()],
+                params![id, name, monthly_limit_usd, alert_threshold_percent, month, scope, scope_id, now()],
             )
             .map_err(|e| AppError::Database(e.to_string()))?;
             Ok(())
@@ -495,7 +603,7 @@ impl Repository {
         self.with_conn(|conn| {
             let mut stmt = conn
                 .prepare(
-                    "SELECT id, name, monthly_limit_usd, alert_threshold_percent, current_spend_usd, month, created_at, updated_at
+                    "SELECT id, name, scope, scope_id, monthly_limit_usd, alert_threshold_percent, current_spend_usd, month, created_at, updated_at
                      FROM budgets ORDER BY created_at DESC",
                 )
                 .map_err(|e| AppError::Database(e.to_string()))?;
@@ -504,17 +612,71 @@ impl Repository {
                     Ok(BudgetRecord {
                         id: row.get(0)?,
                         name: row.get(1)?,
-                        monthly_limit_usd: row.get(2)?,
-                        alert_threshold_percent: row.get(3)?,
-                        current_spend_usd: row.get(4)?,
-                        month: row.get(5)?,
-                        created_at: row.get(6)?,
-                        updated_at: row.get(7)?,
+                        scope: row.get(2)?,
+                        scope_id: row.get(3)?,
+                        monthly_limit_usd: row.get(4)?,
+                        alert_threshold_percent: row.get(5)?,
+                        current_spend_usd: row.get(6)?,
+                        month: row.get(7)?,
+                        created_at: row.get(8)?,
+                        updated_at: row.get(9)?,
                     })
                 })
                 .map_err(|e| AppError::Database(e.to_string()))?;
             rows.collect::<rusqlite::Result<Vec<BudgetRecord>>>()
                 .map_err(|e| AppError::Database(e.to_string()))
+        })
+        .await
+    }
+
+    pub async fn delete_budget(&self, id: &str) -> AppResult<()> {
+        let id = id.to_string();
+        self.with_conn(move |conn| {
+            conn.execute(
+                "DELETE FROM budgets WHERE id = ?1 AND scope != 'global'",
+                params![id],
+            )
+            .map_err(|e| AppError::Database(e.to_string()))?;
+            Ok(())
+        })
+        .await
+    }
+
+    pub async fn get_budget_row(
+        &self,
+        scope: &str,
+        scope_id: Option<&str>,
+    ) -> AppResult<Option<BudgetRecord>> {
+        let (scope, scope_id) = (scope.to_string(), scope_id.map(String::from));
+        self.with_conn(move |conn| {
+            let mut stmt = conn
+                .prepare(
+                    "SELECT id, name, scope, scope_id, monthly_limit_usd, alert_threshold_percent, current_spend_usd, month, created_at, updated_at
+                     FROM budgets WHERE scope = ?1 AND COALESCE(scope_id, '') = ?2 ORDER BY updated_at DESC LIMIT 1",
+                )
+                .map_err(|e| AppError::Database(e.to_string()))?;
+            let result = stmt
+                .query_map(
+                    params![scope, scope_id.unwrap_or_default()],
+                    |row| {
+                        Ok(BudgetRecord {
+                            id: row.get(0)?,
+                            name: row.get(1)?,
+                            scope: row.get(2)?,
+                            scope_id: row.get(3)?,
+                            monthly_limit_usd: row.get(4)?,
+                            alert_threshold_percent: row.get(5)?,
+                            current_spend_usd: row.get(6)?,
+                            month: row.get(7)?,
+                            created_at: row.get(8)?,
+                            updated_at: row.get(9)?,
+                        })
+                    },
+                )
+                .map_err(|e| AppError::Database(e.to_string()))?;
+            let mut rows = result.collect::<rusqlite::Result<Vec<BudgetRecord>>>()
+                .map_err(|e| AppError::Database(e.to_string()))?;
+            Ok(rows.pop())
         })
         .await
     }
@@ -585,5 +747,38 @@ impl Repository {
                 .map_err(|e| AppError::Database(e.to_string()))
         })
         .await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn month_range_bounds_are_inclusive_start_exclusive_end() {
+        let (start, end) = month_range("2026-08").unwrap();
+        assert_eq!(start, "2026-08-01T00:00:00+00:00");
+        assert_eq!(end, "2026-09-01T00:00:00+00:00");
+    }
+
+    #[test]
+    fn month_range_handles_year_boundary() {
+        let (start, end) = month_range("2025-12").unwrap();
+        assert_eq!(start, "2025-12-01T00:00:00+00:00");
+        assert_eq!(end, "2026-01-01T00:00:00+00:00");
+    }
+
+    #[test]
+    fn month_range_rejects_malformed_input() {
+        assert!(month_range("garbage").is_err());
+        assert!(month_range("2026-13").is_err());
+        assert!(month_range("2026").is_err());
+    }
+
+    #[test]
+    fn day_range_bounds_cover_exactly_one_day() {
+        let (start, end) = day_range("2026-08-28").unwrap();
+        assert_eq!(start, "2026-08-28T00:00:00+00:00");
+        assert_eq!(end, "2026-08-29T00:00:00+00:00");
     }
 }

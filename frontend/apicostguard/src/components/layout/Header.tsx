@@ -1,187 +1,186 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useUsage } from "../../context/UsageContext";
+import { motion } from "motion/react";
 import { useSettings } from "../../context/SettingsContext";
 import { useUI } from "../../context/UIContext";
 import { useSetTheme } from "../../hooks/useSettings";
-import { getCurrencySymbol } from "../../utils/format";
-import type { Theme } from "../../types/settings";
-
-const TITLES: Record<string, string> = {
-  "/": "Dashboard",
-  "/models": "Models",
-  "/analytics": "Analytics",
-  "/browser": "Browser Providers",
-  "/desktop": "Desktop Apps",
-  "/local-models": "Local Models",
-  "/litellm": "LiteLLM",
-  "/widgets": "Widgets",
-  "/notifications": "Notifications",
-  "/api-keys": "API Keys",
-  "/settings": "Settings",
-  "/about": "About",
-};
-
-const THEME_OPTIONS: { value: Theme; icon: string; label: string }[] = [
-  { value: "dark", icon: "🌙", label: "Dark" },
-  { value: "light", icon: "☀️", label: "Light" },
-  { value: "system", icon: "🖥️", label: "System" },
-];
+import { useGatewayStatus } from "../../hooks/useGatewayStatus";
+import { useCapacity } from "../../hooks/useCapacity";
+import { useAppInfo } from "../../hooks/useAppInfo";
+import { findNavItem } from "../../config/navigation";
+import { APP_TAGLINE } from "../../config/app";
+import { GATEWAY_DEFAULT_HOST, GATEWAY_DEFAULT_PORT, THEME_CHOICES } from "../../utils/constants";
+import AppActionBar from "../ui/AppActionBar";
 
 export default function Header() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { totalCost, dailyCost, totalTokens, activeProvider, activeModel } = useUsage();
-  const { budget, notifications, theme } = useSettings();
-  const { searchQuery, setSearchQuery, triggerRefresh } = useUI();
+  const { theme } = useSettings();
+  const { triggerRefresh, toggleSidebar } = useUI();
   const setTheme = useSetTheme();
+  const { data: gw, refetch } = useGatewayStatus(10000);
+  const { data: appInfo } = useAppInfo();
+  const { remainingPercent, tone } = useCapacity(15000);
   const [refreshing, setRefreshing] = useState(false);
 
-  const threshold = notifications.thresholds[0] ?? 80;
-
-  const budgetPercent = useMemo(
-    () => Math.min((dailyCost / budget.dailyLimit) * 100, 100),
-    [dailyCost, budget.dailyLimit]
-  );
-
-  const tokenDisplay = useMemo(() => {
-    if (totalTokens >= 1_000_000) return `${(totalTokens / 1_000_000).toFixed(1)}M`;
-    if (totalTokens >= 1_000) return `${(totalTokens / 1_000).toFixed(1)}K`;
-    return totalTokens.toString();
-  }, [totalTokens]);
-
-  const title = TITLES[pathname] ?? "APICostGuard";
-  const symbol = getCurrencySymbol(budget.currency);
+  const nav = findNavItem(pathname);
+  const title = nav?.label ?? "APICostGuard";
+  const port = gw?.endpointPort ?? GATEWAY_DEFAULT_PORT;
 
   function handleRefresh() {
     setRefreshing(true);
     triggerRefresh();
+    refetch();
     setTimeout(() => setRefreshing(false), 600);
   }
 
   return (
-    <header className="glass sticky top-0 z-30 px-5 py-3 flex items-center justify-between gap-4 border-b border-line/60">
-      <div className="flex items-center gap-4 min-w-0">
-        <div className="min-w-0">
-          <h1 className="text-lg font-bold text-ink leading-tight truncate">{title}</h1>
-          <p className="text-[11px] text-muted truncate">
-            {activeProvider ? (
-              <>
-                <span className="text-accent font-medium">{activeProvider}</span>
-                {activeModel && <> · {activeModel}</>}
-              </>
-            ) : (
-              "No active provider"
-            )}
-          </p>
-        </div>
+    <header className="relative z-30 shrink-0 border-b border-line/60 bg-surface/45 backdrop-blur-2xl">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
-        <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-xl bg-canvas/60 border border-line/60 w-64">
-          <span className="text-sm text-faint">🔍</span>
-          <input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search activity…"
-            className="flex-1 bg-transparent text-sm text-ink placeholder:text-faint focus:outline-none"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="text-faint hover:text-ink text-xs cursor-pointer"
-              aria-label="Clear search"
+      <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-5">
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            onClick={toggleSidebar}
+            title="Toggle sidebar"
+            aria-label="Toggle sidebar"
+            className="icon-btn"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
             >
-              ✕
-            </button>
-          )}
+              <line x1="4" y1="6" x2="20" y2="6" />
+              <line x1="4" y1="12" x2="20" y2="12" />
+              <line x1="4" y1="18" x2="20" y2="18" />
+            </svg>
+          </button>
+
+          <div className="min-w-0">
+            <h1 className="text-base font-semibold text-ink leading-tight truncate text-balance lg:text-lg">
+              {title}
+            </h1>
+            <p className="text-[10px] text-faint tracking-wide truncate">
+              {APP_TAGLINE}
+            </p>
+          </div>
         </div>
-      </div>
 
-      <div className="flex items-center gap-3">
-        <NavStat label="Total" value={`${symbol}${totalCost.toFixed(4)}`} />
-        <NavStat label="Today" value={`${symbol}${dailyCost.toFixed(4)}`} />
-        <NavStat label="Tokens" value={tokenDisplay} />
-        <BudgetBadge percent={budgetPercent} threshold={threshold} />
+        <div className="flex items-center gap-2 shrink-0">
+          <AppActionBar
+            info={appInfo}
+            onDownload={() => navigate("/settings", { state: { tab: "about" } })}
+          />
 
-        <button
-          onClick={handleRefresh}
-          title="Refresh data"
-          aria-label="Refresh data"
-          className={`p-2 rounded-xl bg-canvas/60 border border-line/60 text-muted hover:text-ink hover:border-iris/40 transition-all cursor-pointer ${
-            refreshing ? "animate-spin" : ""
-          }`}
-        >
-          ⟳
-        </button>
+          <button
+            onClick={() => navigate("/gateway")}
+            title={`Gateway ${gw?.running ? "running" : "stopped"} — ${GATEWAY_DEFAULT_HOST}:${port}`}
+            className={`hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[11px] font-medium transition-all duration-150 cursor-pointer active:scale-95 ${
+              gw?.running
+                ? "bg-success/10 border-success/25 text-success hover:bg-success/15"
+                : "bg-warning/10 border-warning/25 text-warning hover:bg-warning/15"
+            }`}
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                gw?.running ? "bg-success animate-pulse-beat" : "bg-warning"
+              }`}
+            />
+            <span className="hidden lg:inline font-mono tabular-nums">
+              {GATEWAY_DEFAULT_HOST}:{port}
+            </span>
+          </button>
 
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-canvas/60 border border-line/60">
-          {THEME_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              title={opt.label}
-              aria-label={`${opt.label} theme`}
-              onClick={() => setTheme(opt.value)}
-              className={`px-2 py-1 rounded-lg text-sm transition-all duration-150 cursor-pointer ${
-                theme === opt.value
-                  ? "bg-accent/15 text-accent border border-accent/30"
-                  : "text-muted hover:text-ink border border-transparent"
+          <button
+            onClick={() => navigate("/budgets")}
+            title={`${remainingPercent.toFixed(0)}% remaining — view budgets`}
+            className={`hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[11px] font-medium transition-all duration-150 cursor-pointer active:scale-95 ${
+              tone === "success"
+                ? "bg-success/10 border-success/25 text-success hover:bg-success/15"
+                : tone === "warning"
+                  ? "bg-warning/10 border-warning/25 text-warning hover:bg-warning/15"
+                  : "bg-danger/10 border-danger/25 text-danger hover:bg-danger/15"
+            }`}
+          >
+            <span className={`w-2 h-2 rounded-full ${
+              tone === "success" ? "bg-success" : tone === "warning" ? "bg-warning" : "bg-danger animate-pulse-beat"
+            }`} />
+            <span className="hidden lg:inline tabular-nums">
+              {remainingPercent.toFixed(0)}% left
+            </span>
+          </button>
+
+          <button
+            onClick={handleRefresh}
+            title="Refresh data"
+            aria-label="Refresh data"
+            className="icon-btn"
+          >
+            <span
+              className={`inline-block transition-transform duration-300 ${
+                refreshing ? "animate-spin" : "group-hover:rotate-90"
               }`}
             >
-              {opt.icon}
-            </button>
-          ))}
-        </div>
+              ⟳
+            </span>
+          </button>
 
-        <button
-          onClick={() => navigate("/settings")}
-          title="Open settings"
-          className="w-9 h-9 rounded-full bg-gradient-to-br from-iris to-foam flex items-center justify-center shadow-[0_0_14px_rgba(196,167,231,0.3)] hover:opacity-90 transition-opacity cursor-pointer shrink-0"
-        >
-          <span
-            className="font-extrabold text-xs tracking-tight leading-none"
-            style={{ color: "#ffffff", textShadow: "0 1px 3px rgba(31,29,46,0.6)" }}
+          <div
+            role="group"
+            aria-label="Theme"
+            className="flex items-center gap-0.5 relative p-1 rounded-xl bg-surface/80 border border-line/60"
           >
-            AI
-          </span>
-        </button>
+            {THEME_CHOICES.map((opt) => {
+              const active = theme === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  title={opt.label}
+                  aria-label={`${opt.label} theme`}
+                  aria-pressed={active}
+                  onClick={() => setTheme(opt.value)}
+                  className={`relative z-10 w-8 h-7 rounded-lg text-sm transition-colors duration-150 cursor-pointer ${
+                    active ? "text-accent" : "text-muted hover:text-ink"
+                  }`}
+                >
+                  {active && (
+                    <motion.span
+                      layoutId="theme-pill"
+                      className="absolute inset-0 -z-10 rounded-lg bg-accent/15 shadow-[inset_0_0_0_1px_rgb(var(--accent)/0.35)]"
+                      transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                    />
+                  )}
+                  {opt.icon}
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={() => navigate("/settings")}
+            title="Settings"
+            aria-label="Open settings"
+            className="icon-btn"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+            </svg>
+          </button>
+        </div>
       </div>
     </header>
-  );
-}
-
-function NavStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="text-right hidden xl:block">
-      <p className="text-[10px] text-muted uppercase tracking-wider leading-none">{label}</p>
-      <p className="text-sm font-semibold text-ink tabular-nums leading-tight">{value}</p>
-    </div>
-  );
-}
-
-function BudgetBadge({ percent, threshold }: { percent: number; threshold: number }) {
-  const tone =
-    percent >= 100
-      ? "text-danger bg-danger/10 border-danger/30"
-      : percent >= threshold
-        ? "text-warning bg-warning/10 border-warning/30"
-        : "text-success bg-success/10 border-success/30";
-
-  return (
-    <div className="flex items-center gap-2">
-      <div className="w-14 h-1.5 rounded-full bg-line/60 overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all duration-500 ${
-            percent >= 100
-              ? "bg-danger"
-              : percent >= threshold
-                ? "bg-warning"
-                : "bg-success"
-          }`}
-          style={{ width: `${percent}%` }}
-        />
-      </div>
-      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${tone}`}>
-        {percent.toFixed(1)}%
-      </span>
-    </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from "react";
+import { AnimatePresence, motion } from "motion/react";
 
 interface ModalProps {
   open: boolean;
@@ -17,25 +18,46 @@ export default function Modal({ open, onClose, title, children }: ModalProps) {
     return () => window.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-md mx-4 bg-surface border border-line rounded-2xl shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-line">
-            <h2 className="text-lg font-semibold text-ink">{title}</h2>
-            <button
-              onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-muted hover:bg-line/50 hover:text-ink transition-colors cursor-pointer"
-            >
-              ✕
-            </button>
-          </div>
-        )}
-        <div className="px-6 py-4">{children}</div>
-      </div>
-    </div>
+    <AnimatePresence>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <motion.div
+            key="backdrop"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={onClose}
+          />
+          <motion.div
+            key="panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label={title}
+            className="relative w-full max-w-md mx-4 bg-surface border border-line rounded-2xl shadow-[var(--shadow-pop)] overflow-hidden"
+            initial={{ opacity: 0, scale: 0.96, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.97, y: 4 }}
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {title && (
+              <div className="flex items-center justify-between px-6 py-4 border-b border-line">
+                <h2 className="text-lg font-semibold text-ink">{title}</h2>
+                <button
+                  onClick={onClose}
+                  aria-label="Close"
+                  className="icon-btn !h-8 !w-8"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+            <div className="px-6 py-4">{children}</div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 }

@@ -11,6 +11,16 @@ pub use provider::{ChatMessage, ChatRequest, ChatResponse, ModelInfo, Provider, 
 
 use crate::errors::{AppError, AppResult};
 
+pub fn http_client() -> &'static reqwest::Client {
+    static CLIENT: once_cell::sync::Lazy<reqwest::Client> = once_cell::sync::Lazy::new(|| {
+        reqwest::Client::builder()
+            .connect_timeout(std::time::Duration::from_secs(10))
+            .build()
+            .expect("failed to build shared HTTP client")
+    });
+    &CLIENT
+}
+
 pub fn create(provider_name: &str, api_key: String) -> AppResult<Box<dyn Provider>> {
     match provider_name {
         "gemini" => Ok(Box::new(gemini::GeminiProvider::new(api_key))),

@@ -12,6 +12,7 @@ pub struct SettingsResponse {
     pub max_events: usize,
     pub monthly_limit_usd: f64,
     pub daily_limit_usd: f64,
+    pub weekly_limit_usd: f64,
     pub alert_threshold_percent: u32,
 }
 
@@ -23,6 +24,7 @@ impl From<AppSettings> for SettingsResponse {
             max_events: s.max_events,
             monthly_limit_usd: s.monthly_limit_usd,
             daily_limit_usd: s.daily_limit_usd,
+            weekly_limit_usd: s.weekly_limit_usd,
             alert_threshold_percent: s.alert_threshold_percent,
         }
     }
@@ -46,6 +48,8 @@ pub struct UpdateSettingsRequest {
     #[serde(default)]
     pub daily_limit_usd: Option<f64>,
     #[serde(default)]
+    pub weekly_limit_usd: Option<f64>,
+    #[serde(default)]
     pub alert_threshold_percent: Option<u32>,
 }
 
@@ -60,6 +64,7 @@ pub async fn update_settings(
         max_events: req.max_events.unwrap_or(current.max_events),
         monthly_limit_usd: req.monthly_limit_usd.unwrap_or(current.monthly_limit_usd),
         daily_limit_usd: req.daily_limit_usd.unwrap_or(current.daily_limit_usd),
+        weekly_limit_usd: req.weekly_limit_usd.unwrap_or(current.weekly_limit_usd),
         alert_threshold_percent: req
             .alert_threshold_percent
             .unwrap_or(current.alert_threshold_percent),

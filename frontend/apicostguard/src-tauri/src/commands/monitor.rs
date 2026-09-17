@@ -33,7 +33,11 @@ pub fn get_closest_to_limit(state: State<'_, Arc<AppState>>) -> Option<ToolInfo>
     tools
         .into_iter()
         .filter(|t| t.total_cost > 0.0)
-        .max_by(|a, b| a.total_cost.partial_cmp(&b.total_cost).unwrap_or(Ordering::Equal))
+        .max_by(|a, b| {
+            a.total_cost
+                .partial_cmp(&b.total_cost)
+                .unwrap_or(Ordering::Equal)
+        })
 }
 
 #[tauri::command]

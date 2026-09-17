@@ -87,7 +87,7 @@ pub fn load_key(provider: &str) -> AppResult<Option<String>> {
             match entry.get_password() {
                 Ok(secret) => return Ok(Some(secret)),
                 Err(keyring::Error::NoEntry) => return Ok(None),
-                Err(_) => { /* fall through to local store */ }
+                Err(_) => {}
             }
         }
     }
