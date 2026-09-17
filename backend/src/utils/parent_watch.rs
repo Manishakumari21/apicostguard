@@ -1,5 +1,7 @@
+#[cfg(unix)]
 use std::env;
 
+#[cfg(unix)]
 pub fn install_parent_watch() {
     let Some(parent_pid) = env::var("APICOSTGUARD_PARENT_PID")
         .ok()
@@ -16,3 +18,6 @@ pub fn install_parent_watch() {
         }
     }
 }
+
+#[cfg(not(unix))]
+pub fn install_parent_watch() {}
