@@ -68,7 +68,7 @@ jobs:
           targets: ${{ matrix.target }}
 
       - name: Rust cache
-        uses: swatinen/rust-cache@v2
+        uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
             backend
