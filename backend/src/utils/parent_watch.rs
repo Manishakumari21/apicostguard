@@ -1,7 +1,7 @@
-#[cfg(unix)]
+#[cfg(target_os = "linux")]
 use std::env;
 
-#[cfg(unix)]
+#[cfg(target_os = "linux")]
 pub fn install_parent_watch() {
     let Some(parent_pid) = env::var("APICOSTGUARD_PARENT_PID")
         .ok()
@@ -19,5 +19,5 @@ pub fn install_parent_watch() {
     }
 }
 
-#[cfg(not(unix))]
+#[cfg(not(target_os = "linux"))]
 pub fn install_parent_watch() {}
