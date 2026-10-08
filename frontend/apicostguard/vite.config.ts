@@ -1,7 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-// @ts-expect-error type error without @types/node package
-import process from "node:process";
+
 const host = process.env.TAURI_DEV_HOST;
 
 export default defineConfig(() => ({
@@ -21,8 +20,18 @@ export default defineConfig(() => ({
         }
       : undefined,
     watch: {
-
       ignored: ["**/src-tauri/**"],
     },
+  },
+
+  build: {
+    target: "es2022",
+    sourcemap: false,
+    chunkSizeWarningLimit: 600,
+  },
+
+  preview: {
+    port: 1420,
+    strictPort: true,
   },
 }));

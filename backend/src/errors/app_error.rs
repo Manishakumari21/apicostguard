@@ -63,13 +63,21 @@ impl IntoResponse for AppError {
         let status = self.status_code();
 
         if status.is_server_error() {
+            // Log full detail server-side, but never leak DB internals to clients.
             tracing::error!(error = %self, "request failed");
         } else {
             tracing::warn!(error = %self, "request rejected");
         }
 
+        let message = match &self {
+            AppError::Database(_) | AppError::Internal(_) | AppError::Config(_) => {
+                "internal server error".to_string()
+            }
+            other => other.to_string(),
+        };
+
         let body = Json(json!({
-            "error": { "code": self.error_code(), "message": self.to_string() }
+            "error": { "code": self.error_code(), "message": message }
         }));
 
         (status, body).into_response()

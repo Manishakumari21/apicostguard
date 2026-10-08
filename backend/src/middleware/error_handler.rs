@@ -8,7 +8,7 @@ use serde_json::json;
 pub async fn handle_404() -> Response {
     (
         StatusCode::NOT_FOUND,
-        Json(json!({"error": "not_found" , "message": "resource not found"})),
+        Json(json!({ "error": { "code": "not_found", "message": "resource not found" } })),
     )
         .into_response()
 }

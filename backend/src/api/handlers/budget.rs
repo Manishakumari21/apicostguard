@@ -3,7 +3,7 @@ use axum::Json;
 use serde::{Deserialize, Serialize};
 
 use crate::api::AppState;
-use crate::errors::AppResult;
+use crate::errors::{AppError, AppResult};
 use crate::models::budget::{Budget, BudgetRecord, BudgetScope};
 
 #[derive(Serialize)]
@@ -41,9 +41,9 @@ impl BudgetResponse {
     }
 }
 
-pub async fn get_budget(State(state): State<AppState>) -> Json<BudgetResponse> {
-    let budget = state.budget.get_budget().await.unwrap_or_default();
-    Json(BudgetResponse::from_budget(&budget))
+pub async fn get_budget(State(state): State<AppState>) -> AppResult<Json<BudgetResponse>> {
+    let budget = state.budget.get_budget().await?;
+    Ok(Json(BudgetResponse::from_budget(&budget)))
 }
 
 #[derive(Deserialize)]
@@ -61,16 +61,45 @@ pub struct SaveBudgetRequest {
     pub scope: Option<BudgetScope>,
 }
 
+fn validate_limits(monthly: f64, daily: f64, weekly: Option<f64>, threshold: u32) -> AppResult<()> {
+    for (label, v) in [("monthly_limit_usd", monthly), ("daily_limit_usd", daily)] {
+        if !v.is_finite() || v < 0.0 || v > 1_000_000.0 {
+            return Err(AppError::BadRequest(format!("{label} must be 0..1000000")));
+        }
+    }
+    if let Some(w) = weekly {
+        if !w.is_finite() || w < 0.0 || w > 1_000_000.0 {
+            return Err(AppError::BadRequest(
+                "weekly_limit_usd must be 0..1000000".to_string(),
+            ));
+        }
+    }
+    if threshold == 0 || threshold > 100 {
+        return Err(AppError::BadRequest(
+            "alert_threshold_percent must be 1..=100".to_string(),
+        ));
+    }
+    Ok(())
+}
+
 pub async fn save_budget(
     State(state): State<AppState>,
     Json(req): Json<SaveBudgetRequest>,
 ) -> AppResult<Json<BudgetResponse>> {
+    let daily = req.daily_limit_usd.unwrap_or(10.0);
+    let threshold = req.alert_threshold_percent.unwrap_or(80);
+    validate_limits(
+        req.monthly_limit_usd,
+        daily,
+        req.weekly_limit_usd,
+        threshold,
+    )?;
     let budget = state
         .budget
         .save_budget(
             req.monthly_limit_usd,
-            req.daily_limit_usd.unwrap_or(10.0),
-            req.alert_threshold_percent.unwrap_or(80),
+            daily,
+            threshold,
             req.weekly_limit_usd,
             req.name.as_deref(),
             req.scope,
@@ -83,6 +112,9 @@ pub async fn delete_budget(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
+    if id.trim().is_empty() || id.len() > 128 {
+        return Err(AppError::BadRequest("invalid budget id".to_string()));
+    }
     state.budget.delete_budget(&id).await?;
     Ok(Json(serde_json::json!({ "deleted": true })))
 }

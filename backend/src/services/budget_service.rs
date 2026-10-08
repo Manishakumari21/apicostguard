@@ -88,8 +88,8 @@ impl BudgetService {
         let (m_start, m_end) = month_range(&month)?;
         let w_start = week_start.clone();
         let w_end = chrono::DateTime::parse_from_rfc3339(&w_start)
-            .expect("valid week_start")
-            .with_timezone(&chrono::Utc)
+            .map(|d| d.with_timezone(&chrono::Utc))
+            .unwrap_or_else(|_| chrono::Utc::now())
             + chrono::Duration::days(7);
 
         let current_spend = self
@@ -156,11 +156,21 @@ impl BudgetService {
 
     pub async fn enforce(&self) -> AppResult<()> {
         let budget = self.get_budget().await?;
-        if budget.current_spend_usd >= budget.monthly_limit_usd {
+        if budget.current_spend_usd >= budget.monthly_limit_usd && budget.monthly_limit_usd > 0.0 {
             return Err(crate::errors::AppError::BudgetExceeded(format!(
                 "monthly budget exceeded: ${:.4} spent of ${:.2} limit",
                 budget.current_spend_usd, budget.monthly_limit_usd
             )));
+        }
+        let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
+        if budget.daily_limit_usd > 0.0 {
+            let spent_today = self.repo.daily_cost(&today).await?;
+            if spent_today >= budget.daily_limit_usd {
+                return Err(crate::errors::AppError::BudgetExceeded(format!(
+                    "daily budget exceeded: ${:.4} spent of ${:.2} limit",
+                    spent_today, budget.daily_limit_usd
+                )));
+            }
         }
         Ok(())
     }

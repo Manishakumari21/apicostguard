@@ -1,5 +1,11 @@
+use std::time::Duration;
+
 use axum::routing::{delete, get, post};
 use axum::Router;
+use tower_http::compression::CompressionLayer;
+use tower_http::limit::RequestBodyLimitLayer;
+use tower_http::request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer};
+use tower_http::timeout::TimeoutLayer;
 
 use crate::api::handlers::{
     analytics, budget, dashboard, health, history, notification, project, provider, settings, usage,
@@ -9,15 +15,21 @@ use crate::gateway;
 use crate::middleware::{cors, error_handler, logger};
 use crate::security::auth::require_local_token;
 
-pub fn build_router(state: AppState) -> Router {
-    let gateway = gateway::build_router().route_layer(axum::middleware::from_fn_with_state(
-        state.clone(),
-        require_local_token,
-    ));
+const MAX_BODY_BYTES: usize = 1_048_576; // 1 MiB: blocks $$$ abuse via huge messages arrays
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(35);
 
-    Router::new()
+pub fn build_router(state: AppState) -> Router {
+    // Auth is enforced only when APICOSTGUARD_GATEWAY_TOKEN is set.
+    // Single-user desktop (no token) keeps working; prod/network use is protected.
+    let auth = axum::middleware::from_fn_with_state(state.clone(), require_local_token);
+
+    // Public: liveness only, no auth (load-balancer / Tauri health checks).
+    let public = Router::new()
         .route("/health", get(health::health))
-        .route("/version", get(health::version))
+        .route("/version", get(health::version));
+
+    // Management plane: protected when a token is configured.
+    let protected_api = Router::new()
         .route("/api/providers", get(provider::list_providers))
         .route("/api/providers", post(provider::register_provider))
         .route("/providers", post(provider::register_provider))
@@ -54,9 +66,21 @@ pub fn build_router(state: AppState) -> Router {
         .route("/settings", post(settings::update_settings))
         .route("/api/notifications/send", post(notification::send))
         .route("/api/notifications", get(notification::list))
+        .route_layer(auth.clone());
+
+    let gateway_router = gateway::build_router().route_layer(auth);
+
+    // Merge FIRST, then apply observability layers so they cover every route.
+    public
+        .merge(protected_api)
+        .merge(gateway_router)
         .fallback(error_handler::handle_404)
-        .layer(cors::cors_layer(&state.settings.allowed_origins))
+        .layer(SetRequestIdLayer::x_request_id(MakeRequestUuid))
         .layer(logger::layer())
-        .merge(gateway)
+        .layer(cors::cors_layer(&state.settings.allowed_origins))
+        .layer(PropagateRequestIdLayer::x_request_id())
+        .layer(RequestBodyLimitLayer::new(MAX_BODY_BYTES))
+        .layer(TimeoutLayer::new(REQUEST_TIMEOUT))
+        .layer(CompressionLayer::new())
         .with_state(state)
 }

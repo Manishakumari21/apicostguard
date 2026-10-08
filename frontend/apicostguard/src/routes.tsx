@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import Loader from "./components/common/Loader";
+import ErrorBoundary from "./components/common/ErrorBoundary";
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Gateway = lazy(() => import("./pages/Gateway"));
@@ -14,9 +15,14 @@ const Alerts = lazy(() => import("./pages/Alerts"));
 const Settings = lazy(() => import("./pages/Settings"));
 const APIKeys = lazy(() => import("./pages/APIKeys"));
 const About = lazy(() => import("./pages/About"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 function PageLoader({ children }: { children: React.ReactNode }) {
-  return <Suspense fallback={<Loader />}>{children}</Suspense>;
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<Loader />}>{children}</Suspense>
+    </ErrorBoundary>
+  );
 }
 
 export default function AppRoutes() {
@@ -34,7 +40,7 @@ export default function AppRoutes() {
       <Route path="/settings" element={<PageLoader><Settings /></PageLoader>} />
       <Route path="/api-keys" element={<PageLoader><APIKeys /></PageLoader>} />
       <Route path="/about" element={<PageLoader><About /></PageLoader>} />
-      <Route path="*" element={<PageLoader><Dashboard /></PageLoader>} />
+      <Route path="*" element={<PageLoader><NotFound /></PageLoader>} />
     </Routes>
   );
 }

@@ -21,12 +21,12 @@ pub(crate) fn month_range(month: &str) -> AppResult<(String, String)> {
     let (y, m) = month
         .split_once('-')
         .and_then(|(y, m)| m.parse::<u32>().ok().map(|m| (y, m)))
-        .ok_or_else(|| AppError::Internal(anyhow::anyhow!("invalid month '{month}'")))?;
+        .ok_or_else(|| AppError::BadRequest(format!("invalid month '{month}'")))?;
     let year = y
         .parse::<i32>()
-        .map_err(|e| AppError::Internal(anyhow::anyhow!("invalid month '{month}': {e}")))?;
+        .map_err(|_| AppError::BadRequest(format!("invalid month '{month}'")))?;
     let start = chrono::NaiveDate::from_ymd_opt(year, m, 1)
-        .ok_or_else(|| AppError::Internal(anyhow::anyhow!("invalid month '{month}'")))?;
+        .ok_or_else(|| AppError::BadRequest(format!("invalid month '{month}'")))?;
     let end = next_month(&start);
     Ok((
         start.and_hms_opt(0, 0, 0).unwrap().and_utc().to_rfc3339(),
@@ -36,7 +36,7 @@ pub(crate) fn month_range(month: &str) -> AppResult<(String, String)> {
 
 fn day_range(day: &str) -> AppResult<(String, String)> {
     let start = chrono::NaiveDate::parse_from_str(day, "%Y-%m-%d")
-        .map_err(|e| AppError::Internal(anyhow::anyhow!("invalid day '{day}': {e}")))?;
+        .map_err(|_| AppError::BadRequest(format!("invalid day '{day}'")))?;
     let end = start + chrono::Duration::days(1);
     Ok((
         start.and_hms_opt(0, 0, 0).unwrap().and_utc().to_rfc3339(),
@@ -47,9 +47,7 @@ fn day_range(day: &str) -> AppResult<(String, String)> {
 fn week_range_from_start(week_start: &str) -> AppResult<(String, String)> {
     let start = chrono::DateTime::parse_from_rfc3339(week_start)
         .map(|dt| dt.with_timezone(&chrono::Utc))
-        .map_err(|e| {
-            AppError::Internal(anyhow::anyhow!("invalid week_start '{week_start}': {e}"))
-        })?;
+        .map_err(|_| AppError::BadRequest(format!("invalid week_start '{week_start}'")))?;
     let end = start + chrono::Duration::days(7);
     Ok((start.to_rfc3339(), end.to_rfc3339()))
 }
@@ -94,7 +92,9 @@ impl Repository {
     {
         let db = self.db.clone();
         tokio::task::spawn_blocking(move || {
-            let conn = db.lock().expect("db mutex poisoned");
+            let conn = db
+                .get()
+                .map_err(|e| AppError::Database(format!("db pool exhausted: {e}")))?;
             f(&conn)
         })
         .await

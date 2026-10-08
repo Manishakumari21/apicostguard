@@ -10,6 +10,7 @@ import Sidebar from "./components/layout/Sidebar";
 import Header from "./components/layout/Header";
 import DataBridge from "./components/common/DataBridge";
 import ToastHost from "./components/common/ToastHost";
+import ErrorBoundary from "./components/common/ErrorBoundary";
 import { EASE } from "./components/motion/reveal";
 
 function Shell() {
@@ -23,6 +24,9 @@ function Shell() {
 
   return (
     <div className="relative flex h-dvh text-ink overflow-hidden">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-2">
+        Skip to content
+      </a>
       <Sidebar />
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
         <Header />
@@ -30,6 +34,7 @@ function Shell() {
           ref={mainRef}
           className="relative flex-1 overflow-y-auto px-5 py-5 lg:px-7"
           id="main-content"
+          tabIndex={-1}
         >
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
@@ -52,18 +57,20 @@ function Shell() {
 
 export default function App() {
   return (
-    <HashRouter>
-      <UIProvider>
-        <UsageProvider>
-          <SettingsProvider>
-            <NotificationProvider>
-              <DataBridge />
-              <ToastHost />
-              <Shell />
-            </NotificationProvider>
-          </SettingsProvider>
-        </UsageProvider>
-      </UIProvider>
-    </HashRouter>
+    <ErrorBoundary>
+      <HashRouter>
+        <UIProvider>
+          <UsageProvider>
+            <SettingsProvider>
+              <NotificationProvider>
+                <DataBridge />
+                <ToastHost />
+                <Shell />
+              </NotificationProvider>
+            </SettingsProvider>
+          </UsageProvider>
+        </UIProvider>
+      </HashRouter>
+    </ErrorBoundary>
   );
 }

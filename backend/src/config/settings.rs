@@ -27,15 +27,24 @@ impl Config {
         }
 
         let host = env::var("HOST").unwrap_or_else(|_| constants::DEFAULT_HOST.to_string());
-        let port = env::var("PORT")
-            .ok()
-            .and_then(|p| p.parse::<u16>().ok())
-            .unwrap_or(constants::DEFAULT_PORT);
+        let port = match env::var("PORT") {
+            Ok(raw) => raw.parse::<u16>().unwrap_or_else(|_| {
+                eprintln!(
+                    "[config] invalid PORT='{raw}', falling back to {}",
+                    constants::DEFAULT_PORT
+                );
+                constants::DEFAULT_PORT
+            }),
+            Err(_) => constants::DEFAULT_PORT,
+        };
         let log_level =
             env::var("LOG_LEVEL").unwrap_or_else(|_| constants::DEFAULT_LOG_LEVEL.to_string());
         let database_url = env::var("DATABASE_URL")
             .unwrap_or_else(|_| constants::DEFAULT_DATABASE_URL.to_string());
-        let gateway_token = env::var("APICOSTGUARD_GATEWAY_TOKEN").ok();
+        let gateway_token = env::var("APICOSTGUARD_GATEWAY_TOKEN")
+            .ok()
+            .map(|v| v.trim().to_string())
+            .filter(|v| !v.is_empty());
         let allowed_origins = env::var("ALLOWED_ORIGINS")
             .map(|v| {
                 v.split(',')

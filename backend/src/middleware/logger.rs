@@ -34,5 +34,6 @@ pub fn init_tracing(settings: &Settings) {
 pub fn layer(
 ) -> TraceLayer<tower_http::classify::SharedClassifier<tower_http::classify::ServerErrorsAsFailures>>
 {
+    // Note: Authorization headers are never logged because include_headers defaults to false.
     TraceLayer::new_for_http()
 }

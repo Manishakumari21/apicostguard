@@ -11,6 +11,9 @@ use crate::gateway::project;
 use crate::providers::{self, ChatMessage, ChatRequest};
 use crate::security::keyring;
 
+const MAX_MESSAGES: usize = 100;
+const MAX_TOTAL_CHARS: usize = 100_000;
+
 #[derive(Serialize)]
 pub struct GatewayResponse {
     pub content: String,
@@ -20,6 +23,8 @@ pub struct GatewayResponse {
     pub output_tokens: i64,
     pub latency_ms: i64,
     pub cost: f64,
+    /// False when tokens/cost were estimated locally (no upstream usage).
+    pub estimated: bool,
 }
 
 #[derive(Deserialize)]
@@ -27,6 +32,27 @@ pub struct ProxyRequest {
     pub provider: String,
     pub model: String,
     pub messages: Vec<ChatMessage>,
+}
+
+fn validate_chat_request(request: &ChatRequest) -> AppResult<()> {
+    if request.model.trim().is_empty() {
+        return Err(AppError::BadRequest("model must not be empty".to_string()));
+    }
+    if request.model.len() > 128 {
+        return Err(AppError::BadRequest("model name too long".to_string()));
+    }
+    if request.messages.is_empty() || request.messages.len() > MAX_MESSAGES {
+        return Err(AppError::BadRequest(format!(
+            "messages must contain 1..={MAX_MESSAGES} items"
+        )));
+    }
+    let total: usize = request.messages.iter().map(|m| m.content.len()).sum();
+    if total > MAX_TOTAL_CHARS {
+        return Err(AppError::BadRequest(format!(
+            "messages too large ({total} chars, max {MAX_TOTAL_CHARS})"
+        )));
+    }
+    Ok(())
 }
 
 fn detect_provider(model: &str) -> Option<&'static str> {
@@ -63,6 +89,26 @@ async fn resolve_api_key(provider: &str, body_key: Option<String>) -> AppResult<
         "no API key saved for provider '{provider}'"
     )))
 }
+
+/// Sanitize upstream errors: keep status + short excerpt, never full bodies (may contain key fragments).
+fn sanitize_provider_error(e: &AppError) -> AppError {
+    match e {
+        AppError::ProviderError(msg) | AppError::RequestError(msg) => {
+            let short: String = msg.chars().take(300).collect();
+            AppError::ProviderError(format!("upstream request failed: {short}"))
+        }
+        other => AppError::ProviderError(format!("upstream request failed: {other}")),
+    }
+}
+
+fn notify_failure_bg(provider_name: &str) {
+    let title = "API CostGuard — Provider Error".to_string();
+    let body = format!("{provider_name} request failed (see logs)");
+    tokio::spawn(async move {
+        crate::notifications::desktop::notify(&title, &body);
+    });
+}
+
 async fn dispatch(
     state: &AppState,
     provider_name: &str,
@@ -70,6 +116,7 @@ async fn dispatch(
     body_key: Option<String>,
     project_id: Option<String>,
 ) -> AppResult<GatewayResponse> {
+    validate_chat_request(&request)?;
     state.budget.enforce().await?;
 
     let api_key = resolve_api_key(provider_name, body_key).await?;
@@ -81,6 +128,8 @@ async fn dispatch(
     match result {
         Ok(response) => {
             let metadata = interceptor::build_metadata(provider_name, &request, &response, &timer);
+            // Heuristic fallback yields estimated=true so UI can label costs honestly.
+            let estimated = metadata.input_tokens == 0 && metadata.output_tokens == 0;
 
             if let Err(e) = state
                 .usage
@@ -98,6 +147,7 @@ async fn dispatch(
                 output_tokens: metadata.output_tokens,
                 latency_ms: metadata.latency_ms,
                 cost: metadata.cost,
+                estimated,
             })
         }
         Err(e) => {
@@ -114,11 +164,9 @@ async fn dispatch(
             {
                 tracing::error!(error = %log_err, "failed to record failed usage log");
             }
-            crate::notifications::desktop::notify(
-                "API CostGuard — Provider Error",
-                &format!("{provider_name} request failed: {e}"),
-            );
-            Err(e)
+            tracing::warn!(provider = provider_name, error = %e, "provider request failed");
+            notify_failure_bg(provider_name);
+            Err(sanitize_provider_error(&e))
         }
     }
 }
@@ -166,6 +214,11 @@ pub async fn proxy(
     headers: HeaderMap,
     Json(request): Json<ProxyRequest>,
 ) -> AppResult<Json<GatewayResponse>> {
+    if request.provider.trim().is_empty() {
+        return Err(AppError::BadRequest(
+            "provider must not be empty".to_string(),
+        ));
+    }
     let chat_request = ChatRequest {
         model: request.model,
         messages: request.messages,

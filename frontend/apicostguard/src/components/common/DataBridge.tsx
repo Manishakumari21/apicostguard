@@ -9,6 +9,9 @@ import { getNotifications } from "../../services/notification";
 import { getApiKeys } from "../../services/apiKeys";
 import { loadExtraSettings, loadOnboarded } from "../../utils/storage";
 
+const DEFAULT_POLL_MS = 10_000;
+const MIN_POLL_MS = 5_000;
+
 export default function DataBridge() {
   const usageDispatch = useUsageDispatch();
   const settingsDispatch = useSettingsDispatch();
@@ -17,6 +20,8 @@ export default function DataBridge() {
 
   useEffect(() => {
     let stopped = false;
+    let timer: number | undefined;
+    let failures = 0;
 
     async function loadSettings() {
       try {
@@ -39,7 +44,8 @@ export default function DataBridge() {
             onboarded: loadOnboarded(),
           },
         });
-      } catch {
+      } catch (err) {
+        if (import.meta.env.DEV) console.error("[databridge] settings failed", err);
         const extra = loadExtraSettings();
         if (!stopped) {
           settingsDispatch({
@@ -56,47 +62,55 @@ export default function DataBridge() {
       }
     }
 
-    async function loadUsage() {
+    async function pollOnce() {
+      if (stopped || document.hidden) return;
       try {
-        const events = await getUsage();
-        if (!stopped) usageDispatch({ type: "SET_EVENTS", payload: events });
-      } catch {}
-    }
-
-    async function loadProviders() {
-      try {
-        const tools = await getTools();
+        const [events, tools, items] = await Promise.all([
+          getUsage(),
+          getTools().catch(() => []),
+          getNotifications().catch(() => []),
+        ]);
+        if (stopped) return;
+        failures = 0;
+        usageDispatch({ type: "SET_EVENTS", payload: events });
         const fromBackend = tools.filter((t) => t.connected).map((t) => t.name);
         const fromKeys = getApiKeys().map((k) => k.provider);
-        if (!stopped) {
-          settingsDispatch({
-            type: "SET_CONNECTED_PROVIDERS",
-            payload: Array.from(new Set([...fromBackend, ...fromKeys])),
-          });
-        }
-      } catch {}
+        settingsDispatch({
+          type: "SET_CONNECTED_PROVIDERS",
+          payload: Array.from(new Set([...fromBackend, ...fromKeys])),
+        });
+        notifDispatch({ type: "SET_NOTIFICATIONS", payload: items });
+      } catch (err) {
+        failures += 1;
+        if (import.meta.env.DEV) console.error("[databridge] poll failed", err);
+      }
     }
 
-    async function loadNotifications() {
-      try {
-        const items = await getNotifications();
-        if (!stopped) notifDispatch({ type: "SET_NOTIFICATIONS", payload: items });
-      } catch {}
+    async function boot() {
+      await loadSettings();
+      await pollOnce();
+      const schedule = () => {
+        if (stopped) return;
+        // Back off on repeated failures; never poll faster than MIN_POLL_MS.
+        const base = Math.max(DEFAULT_POLL_MS, MIN_POLL_MS);
+        const delay = Math.min(60_000, base * 2 ** Math.min(failures, 3));
+        timer = window.setTimeout(() => {
+          void pollOnce().finally(schedule);
+        }, delay);
+      };
+      schedule();
     }
 
-    loadSettings();
-    loadUsage();
-    loadProviders();
-    loadNotifications();
-    const timer = setInterval(() => {
-      loadUsage();
-      loadProviders();
-      loadNotifications();
-    }, 5000);
+    const onVisible = () => {
+      if (!document.hidden) void pollOnce();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    void boot();
 
     return () => {
       stopped = true;
-      clearInterval(timer);
+      if (timer) window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [usageDispatch, settingsDispatch, notifDispatch, refreshKey]);
 
