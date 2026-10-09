@@ -43,6 +43,12 @@ async function httpFallbackStatus(): Promise<GatewayStatus> {
   }
 }
 
+export async function restartGateway(): Promise<GatewayStatus> {
+  // Desktop only: kills our sidecar child and starts it again. The status
+  // poll picks up the result; a rejection carries the recorded reason.
+  return tauriInvoke<GatewayStatus>("gateway_restart");
+}
+
 export async function gatewayRequest<T>(
   method: "GET" | "POST" | "DELETE",
   path: string,

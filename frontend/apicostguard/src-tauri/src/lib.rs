@@ -24,10 +24,20 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        // Second launch focuses the running window instead of starting a
+        // duplicate tray + backend (the classic "ghost app" confusion).
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.unminimize();
+                let _ = window.set_focus();
+            }
+        }))
         .manage(state.clone())
         .invoke_handler(tauri::generate_handler![
             commands::app_info::app_info,
             commands::gateway::gateway_status,
+            commands::gateway::gateway_restart,
             commands::gateway::gateway_request,
             commands::monitor::get_tools,
             commands::monitor::get_usage,
@@ -50,7 +60,11 @@ pub fn run() {
             }
         })
         .build(tauri::generate_context!())
-        .expect("error while building APICostGuard");
+        .unwrap_or_else(|e| {
+            // Never panic at startup: leave a readable trace and exit.
+            eprintln!("[apicostguard] failed to start: {e}");
+            std::process::exit(1);
+        });
 
     app.run(|app_handle, event| {
         if let tauri::RunEvent::Exit = event {

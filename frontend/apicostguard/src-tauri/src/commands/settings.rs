@@ -4,15 +4,16 @@ use tauri::State;
 
 use crate::app::AppState;
 use crate::models::AppSettings;
+use crate::utils;
 
 #[tauri::command]
 pub fn get_settings(state: State<'_, Arc<AppState>>) -> AppSettings {
-    state.settings.read().unwrap().clone()
+    utils::read(&state.settings).clone()
 }
 
 #[tauri::command]
 pub fn update_settings(state: State<'_, Arc<AppState>>, settings: AppSettings) -> AppSettings {
-    *state.settings.write().unwrap() = settings.clone();
+    *utils::write(&state.settings) = settings.clone();
     state.persist();
     settings
 }

@@ -62,7 +62,7 @@ pub fn request(method: &str, path: &str, body: Option<Value>) -> Result<Value, S
     Ok(parse_json(&text))
 }
 
-pub fn status(managed: bool) -> GatewayStatus {
+pub fn status(managed: bool, last_error: Option<String>) -> GatewayStatus {
     let mut status = GatewayStatus {
         running: false,
         version: String::new(),
@@ -99,6 +99,12 @@ pub fn status(managed: bool) -> GatewayStatus {
         Err(e) => {
             status.error = Some(format!("{}", e));
         }
+    }
+
+    // Surface the last sidecar spawn/health failure when nothing is running,
+    // so the UI can tell the user what to do instead of a bare "offline".
+    if !status.running && status.error.is_none() {
+        status.error = last_error;
     }
 
     if status.running {

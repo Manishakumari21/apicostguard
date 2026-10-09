@@ -18,7 +18,7 @@ pub fn start(app: AppHandle, state: Arc<AppState>) {
 
         loop {
             let (enabled, interval) = {
-                let s = state.settings.read().unwrap().clone();
+                let s = utils::read(&state.settings).clone();
                 (s.monitoring_enabled, s.poll_interval_secs.max(1))
             };
 
@@ -54,7 +54,7 @@ fn run_cycle(
         .map(|s| connectors::probe(client, s))
         .collect();
     {
-        let mut servers = state.servers.write().unwrap();
+        let mut servers = utils::write(&state.servers);
         *servers = statuses.clone();
     }
 
@@ -97,14 +97,14 @@ fn run_cycle(
     *sessions = next_sessions;
 
     if !new_events.is_empty() {
-        let mut events = state.events.write().unwrap();
+        let mut events = utils::write(&state.events);
         events.extend(new_events);
         if events.len() > 2000 {
             let excess = events.len() - 2000;
             events.drain(0..excess);
         }
         let snapshot = events.clone();
-        state.store.lock().unwrap().save_events(&snapshot);
+        utils::lock(&state.store).save_events(&snapshot);
     }
 
     notifications::check_budget(app, state);

@@ -4,10 +4,11 @@ use tauri::State;
 
 use crate::app::AppState;
 use crate::models::AppNotification;
+use crate::utils;
 
 #[tauri::command]
 pub fn get_notifications(state: State<'_, Arc<AppState>>) -> Vec<AppNotification> {
-    state.notifications.read().unwrap().clone()
+    utils::read(&state.notifications).clone()
 }
 
 #[tauri::command]

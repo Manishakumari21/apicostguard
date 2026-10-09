@@ -11,6 +11,7 @@ export default function GatewayStatusBadge({ gateway }: GatewayStatusBadgeProps)
 
   return (
     <div
+      title={gateway?.error ?? undefined}
       className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border transition-colors duration-200 ${
         running
           ? "bg-success/8 border-success/25"

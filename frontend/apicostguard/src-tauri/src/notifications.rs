@@ -6,7 +6,7 @@ use crate::utils;
 
 pub fn send(app: &AppHandle, state: &AppState, type_: &str, title: &str, message: &str) {
     {
-        let mut notifs = state.notifications.write().unwrap();
+        let mut notifs = utils::write(&state.notifications);
         let n = AppNotification {
             id: utils::new_id("notif"),
             type_: type_.to_string(),
@@ -22,7 +22,7 @@ pub fn send(app: &AppHandle, state: &AppState, type_: &str, title: &str, message
             notifs.drain(0..excess);
         }
         let snapshot = notifs.clone();
-        state.store.lock().unwrap().save_notifications(&snapshot);
+        utils::lock(&state.store).save_notifications(&snapshot);
     }
 
     use tauri_plugin_notification::NotificationExt;
@@ -35,7 +35,7 @@ pub fn send(app: &AppHandle, state: &AppState, type_: &str, title: &str, message
 }
 
 pub fn check_budget(app: &AppHandle, state: &AppState) {
-    let settings = state.settings.read().unwrap().clone();
+    let settings = utils::read(&state.settings).clone();
     if !settings.notifications.enabled {
         return;
     }
@@ -46,7 +46,7 @@ pub fn check_budget(app: &AppHandle, state: &AppState) {
     let month_key = utils::month_bucket(now);
 
     let (day_cost, month_cost) = {
-        let events = state.events.read().unwrap();
+        let events = utils::read(&state.events);
         let mut dc = 0.0f64;
         let mut mc = 0.0f64;
         for e in events.iter() {
@@ -72,7 +72,7 @@ pub fn check_budget(app: &AppHandle, state: &AppState) {
         0.0
     };
 
-    let mut fired = state.fired_thresholds.lock().unwrap();
+    let mut fired = utils::lock(&state.fired_thresholds);
     for threshold in &settings.notifications.thresholds {
         let t = *threshold;
         if t == 0 {

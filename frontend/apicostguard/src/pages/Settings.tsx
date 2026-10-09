@@ -5,7 +5,8 @@ import { useSetTheme } from "../hooks/useSettings";
 import { useAppInfo } from "../hooks/useAppInfo";
 import { APP_NAME, APP_TAGLINE, GITHUB_ISSUES_URL, GITHUB_REPO_PATH, GITHUB_REPO_URL } from "../config/app";
 import { CLOUD_PROVIDERS, THEME_CHOICES, gatewayHttp } from "../utils/constants";
-import { getGatewayStatus } from "../services/gatewayService";
+import { getGatewayStatus, restartGateway } from "../services/gatewayService";
+import { isTauri } from "../services/tauri";
 import { openExternal } from "../services/external";
 import type { GatewayStatus } from "../types/domain";
 import PageHeader from "../components/ui/PageHeader";
@@ -142,8 +143,10 @@ function GeneralTab() {
 
 function GatewayTab() {
   const navigate = useNavigate();
-  const { data } = useGatewayQuery(() => getGatewayStatus(), ["gw-status-settings"]);
+  const { data, refetch } = useGatewayQuery(() => getGatewayStatus(), ["gw-status-settings"]);
   const gw = data as GatewayStatus | null;
+  const [restarting, setRestarting] = useState(false);
+  const [restartError, setRestartError] = useState<string | null>(null);
   const rows: [string, string][] = [
     ["Endpoint", gatewayHttp(gw?.endpointHost, gw?.endpointPort)],
     ["Environment", gw?.environment ?? "—"],
@@ -151,6 +154,19 @@ function GatewayTab() {
     ["Uptime", gw?.uptimeSeconds != null ? `${Math.floor(gw.uptimeSeconds / 60)}m ${gw.uptimeSeconds % 60}s` : "—"],
     ["Managed", gw?.managed ? "by APICostGuard" : "external process"],
   ];
+  const statusError = restartError ?? gw?.error ?? null;
+  async function onRestart() {
+    setRestarting(true);
+    setRestartError(null);
+    try {
+      await restartGateway();
+    } catch (err) {
+      setRestartError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setRestarting(false);
+      refetch();
+    }
+  }
   return (
     <Panel title="Gateway" actions={<Button size="sm" variant="secondary" onClick={() => navigate("/gateway")}>Open gateway</Button>}>
       <div className="mb-3">
@@ -160,6 +176,18 @@ function GatewayTab() {
           pulse={gw?.running}
         />
       </div>
+      {statusError && (
+        <p className="mb-3 rounded-lg border border-warning/30 bg-warning/8 px-3 py-2 text-xs text-ink" role="alert">
+          {statusError}
+        </p>
+      )}
+      {isTauri() && !gw?.running && (
+        <div className="mb-3">
+          <Button size="sm" variant="primary" onClick={onRestart} disabled={restarting}>
+            {restarting ? "Restarting…" : "Restart gateway"}
+          </Button>
+        </div>
+      )}
       <div className="rounded-lg border border-line/60 bg-card overflow-hidden">
         {rows.map(([k, v]) => (
           <div key={k} className="flex items-center justify-between gap-4 px-3 py-2 border-b border-line/40 last:border-0">

@@ -10,25 +10,25 @@ use crate::utils;
 
 #[tauri::command]
 pub fn get_usage(state: State<'_, Arc<AppState>>) -> Vec<UsageEvent> {
-    state.events.read().unwrap().clone()
+    utils::read(&state.events).clone()
 }
 
 #[tauri::command]
 pub fn get_servers(state: State<'_, Arc<AppState>>) -> Vec<ServerStatus> {
-    state.servers.read().unwrap().clone()
+    utils::read(&state.servers).clone()
 }
 
 #[tauri::command]
 pub fn get_tools(state: State<'_, Arc<AppState>>) -> Vec<ToolInfo> {
-    let events = state.events.read().unwrap().clone();
-    let servers = state.servers.read().unwrap().clone();
+    let events = utils::read(&state.events).clone();
+    let servers = utils::read(&state.servers).clone();
     services::build_tools(&events, &servers)
 }
 
 #[tauri::command]
 pub fn get_closest_to_limit(state: State<'_, Arc<AppState>>) -> Option<ToolInfo> {
-    let events = state.events.read().unwrap().clone();
-    let servers = state.servers.read().unwrap().clone();
+    let events = utils::read(&state.events).clone();
+    let servers = utils::read(&state.servers).clone();
     let tools = services::build_tools(&events, &servers);
     tools
         .into_iter()
@@ -42,7 +42,7 @@ pub fn get_closest_to_limit(state: State<'_, Arc<AppState>>) -> Option<ToolInfo>
 
 #[tauri::command]
 pub fn get_daily_summary(state: State<'_, Arc<AppState>>) -> DailySummary {
-    let events = state.events.read().unwrap().clone();
+    let events = utils::read(&state.events).clone();
     let now = utils::now_millis();
     let day = utils::day_bucket(now);
     let month = utils::month_bucket(now);

@@ -10,6 +10,7 @@ use tauri_plugin_shell::process::CommandChild;
 
 use crate::models::{AppNotification, AppSettings, ServerStatus, UsageEvent};
 use crate::storage::Store;
+use crate::utils;
 
 pub struct AppState {
     pub store: Mutex<Store>,
@@ -20,6 +21,8 @@ pub struct AppState {
     pub servers: RwLock<Vec<ServerStatus>>,
     pub fired_thresholds: Mutex<HashSet<String>>,
     pub backend_child: Mutex<Option<CommandChild>>,
+    /// Last sidecar spawn/health failure, surfaced in the UI via gateway_status.
+    pub backend_error: Mutex<Option<String>>,
 }
 
 impl Default for AppState {
@@ -33,6 +36,7 @@ impl Default for AppState {
             servers: RwLock::new(Vec::new()),
             fired_thresholds: Mutex::new(HashSet::new()),
             backend_child: Mutex::new(None),
+            backend_error: Mutex::new(None),
         }
     }
 }
@@ -43,18 +47,18 @@ impl AppState {
     }
 
     pub fn init(&self, dir: PathBuf) {
-        *self.store.lock().unwrap() = Store::new(dir);
-        let store = self.store.lock().unwrap();
-        *self.settings.write().unwrap() = store.load_settings();
-        *self.events.write().unwrap() = store.load_events();
-        *self.notifications.write().unwrap() = store.load_notifications();
+        *utils::lock(&self.store) = Store::new(dir);
+        let store = utils::lock(&self.store);
+        *utils::write(&self.settings) = store.load_settings();
+        *utils::write(&self.events) = store.load_events();
+        *utils::write(&self.notifications) = store.load_notifications();
     }
 
     pub fn persist(&self) {
-        let settings = self.settings.read().unwrap().clone();
-        let events = self.events.read().unwrap().clone();
-        let notifications = self.notifications.read().unwrap().clone();
-        let store = self.store.lock().unwrap();
+        let settings = utils::read(&self.settings).clone();
+        let events = utils::read(&self.events).clone();
+        let notifications = utils::read(&self.notifications).clone();
+        let store = utils::lock(&self.store);
         store.save_settings(&settings);
         store.save_events(&events);
         store.save_notifications(&notifications);

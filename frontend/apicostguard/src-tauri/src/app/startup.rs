@@ -4,6 +4,7 @@ use tauri::Manager;
 
 use crate::app::AppState;
 use crate::monitor;
+use crate::utils;
 
 pub fn run(app: &mut tauri::App, state: Arc<AppState>) {
     let handle = app.handle().clone();
@@ -11,7 +12,7 @@ pub fn run(app: &mut tauri::App, state: Arc<AppState>) {
     if let Ok(dir) = handle.path().app_data_dir() {
         state.init(dir);
     }
-    *state.app_handle.lock().unwrap() = Some(handle.clone());
+    *utils::lock(&state.app_handle) = Some(handle.clone());
 
     let _ = setup_tray(app, &handle);
 
