@@ -59,6 +59,11 @@ impl ProviderInfo {
 }
 
 #[async_trait]
+// async_trait 0.1.x expands each method with a bare `#[must_use]` while the
+// desugared return type (pinned boxed Future of already-`#[must_use]`
+// `AppResult`) is itself `#[must_use]`. Clippy 1.99+ flags this as
+// `clippy::double_must_use`; allowing it here keeps `-D warnings` green.
+#[allow(clippy::double_must_use)]
 pub trait Provider: Send + Sync {
     fn name(&self) -> &'static str;
     async fn validate_key(&self) -> AppResult<bool>;
