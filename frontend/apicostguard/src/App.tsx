@@ -10,6 +10,7 @@ import Sidebar from "./components/layout/Sidebar";
 import Header from "./components/layout/Header";
 import DataBridge from "./components/common/DataBridge";
 import ToastHost from "./components/common/ToastHost";
+import UpdateNotifier from "./components/common/UpdateNotifier";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import { EASE } from "./components/motion/reveal";
 
@@ -65,6 +66,7 @@ export default function App() {
               <NotificationProvider>
                 <DataBridge />
                 <ToastHost />
+                <UpdateNotifier />
                 <Shell />
               </NotificationProvider>
             </SettingsProvider>
