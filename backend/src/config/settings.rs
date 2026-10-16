@@ -26,7 +26,13 @@ impl Config {
             }
         }
 
-        let host = env::var("HOST").unwrap_or_else(|_| constants::DEFAULT_HOST.to_string());
+        let host = env::var("HOST").unwrap_or_else(|_| {
+        if environment == "production" {
+            "0.0.0.0".to_string()
+        } else {
+            constants::DEFAULT_HOST.to_string()
+        }
+    });
         let port = match env::var("PORT") {
             Ok(raw) => raw.parse::<u16>().unwrap_or_else(|_| {
                 eprintln!(
