@@ -35,6 +35,13 @@ fn apply_pragmas(conn: &Connection) {
 
 pub fn init_pool(database_url: &str) -> anyhow::Result<Db> {
     let path = path_from_url(database_url);
+    if path != ":memory:" {
+        if let Some(parent) = std::path::Path::new(&path).parent() {
+            if !parent.as_os_str().is_empty() {
+                std::fs::create_dir_all(parent)?;
+            }
+        }
+    }
     let manager = SqliteConnectionManager::file(&path).with_init(|c| {
         apply_pragmas(c);
         Ok(())

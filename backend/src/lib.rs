@@ -36,14 +36,14 @@ pub async fn run() -> anyhow::Result<()> {
     tracing::info!("starting API CostGuard backend");
 
     if settings.is_production() && settings.gateway_token.is_none() {
-        tracing::warn!(
+        anyhow::bail!(
             "APP_ENV=production but APICOSTGUARD_GATEWAY_TOKEN is not set — \
-             /v1/* gateway routes are OPEN to the network"
+             refusing to start with open gateway routes"
         );
     }
     if settings.is_production() && settings.allowed_origins.is_empty() {
-        tracing::warn!(
-            "APP_ENV=production but ALLOWED_ORIGINS is not set — CORS allows any origin"
+        anyhow::bail!(
+            "APP_ENV=production but ALLOWED_ORIGINS is not set — refusing to start with open CORS"
         );
     }
 
