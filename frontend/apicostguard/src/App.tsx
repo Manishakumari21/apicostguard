@@ -24,7 +24,7 @@ function Shell() {
   }, [location.pathname]);
 
   return (
-    <div className="relative flex h-dvh text-ink overflow-hidden">
+    <div className="relative flex h-dvh text-[#2a2420] bg-[#f4f1ec] overflow-hidden">
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-2">
         Skip to content
       </a>
