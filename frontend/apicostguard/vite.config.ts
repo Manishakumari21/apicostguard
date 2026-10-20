@@ -28,6 +28,22 @@ export default defineConfig(() => ({
     target: "es2022",
     sourcemap: false,
     chunkSizeWarningLimit: 600,
+    cssCodeSplit: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules/react") || id.includes("react-dom") || id.includes("react-router")) {
+            return "react";
+          }
+          if (id.includes("recharts")) return "charts";
+          if (id.includes("framer-motion")) return "motion";
+          return undefined;
+        },
+      },
+    },
+  },
+  optimizeDeps: {
+    include: ["react", "react-dom", "react-router-dom"],
   },
 
   preview: {
