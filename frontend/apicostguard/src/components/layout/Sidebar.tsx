@@ -16,8 +16,8 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`relative z-20 flex h-full flex-col bg-[#faf8f5] border-r border-[#e7e1d8] shrink-0 transition-all duration-300 ${
-        collapsed ? "w-[84px]" : "w-72"
+      className={`relative z-20 flex h-full flex-col bg-sidebar/80 backdrop-blur-2xl border-r border-line/60 shrink-0 transition-colors ${
+        collapsed ? "w-[72px]" : "w-60"
       }`}
     >
       <div className="shrink-0 border-b border-line/60">

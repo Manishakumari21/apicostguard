@@ -35,7 +35,7 @@ export default function Header() {
   }
 
   return (
-    <header className="relative z-30 shrink-0 border-b border-[#e7e1d8] bg-[#faf8f5]/80 backdrop-blur-xl">
+    <header className="relative z-30 shrink-0 border-b border-line/60 bg-surface/45 backdrop-blur-2xl">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
       <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-5">
