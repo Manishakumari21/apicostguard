@@ -47,7 +47,8 @@ pub async fn run() -> anyhow::Result<()> {
         );
     }
 
-    let db = database::init_pool(&settings.database_url)?;
+    let db = database::init_pool(&settings.database_url)
+        .map_err(|e| anyhow::anyhow!("SQLite initialization failed: {e:#}"))?;
     let repository = database::Repository::new(db);
     let usage_service = UsageService::new(repository.clone());
     let budget_service = BudgetService::new(repository.clone());
