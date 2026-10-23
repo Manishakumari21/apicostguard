@@ -6,7 +6,8 @@ import { UsageProvider } from "./context/UsageContext";
 import { SettingsProvider } from "./context/SettingsContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { UIProvider } from "./context/UIContext";
-import Sidebar from "./components/layout/Sidebar";
+import { NavLink } from "react-router-dom";
+import { NAV_SECTIONS } from "./config/navigation";
 import Header from "./components/layout/Header";
 import DataBridge from "./components/common/DataBridge";
 import ToastHost from "./components/common/ToastHost";
@@ -28,8 +29,14 @@ function Shell() {
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-2">
         Skip to content
       </a>
-      <Sidebar />
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
+        <nav className="flex gap-4 overflow-x-auto border-b border-line/60 px-4 py-2">
+          {NAV_SECTIONS.flatMap((s) => s.items).map((item) => (
+            <NavLink key={item.path} to={item.path} className="text-sm text-muted hover:text-ink whitespace-nowrap">
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
         <Header />
         <main
           ref={mainRef}
