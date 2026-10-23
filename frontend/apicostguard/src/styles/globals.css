@@ -5,25 +5,25 @@
 @layer base {
   :root {
 
-    --canvas: 40 40 40;
-    --sidebar: 29 32 33;
-    --surface: 40 40 40;
-    --card: 60 56 54;
-    --line: 80 73 69;
-    --ink: 235 219 178;
-    --muted: 168 153 132;
-    --faint: 146 131 116;
-    --accent: 250 189 47;
-    --success: 184 187 38;
-    --warning: 250 189 47;
-    --danger: 251 73 52;
-    --info: 131 165 152;
-    --iris: 211 134 155;
-    --rose: 251 73 52;
-    --foam: 184 187 38;
-    --gold: 250 189 47;
-    --love: 251 73 52;
-    --pine: 131 165 152;
+    --canvas: 11 15 20;
+    --sidebar: 15 20 27;
+    --surface: 15 20 27;
+    --card: 21 27 35;
+    --line: 39 49 61;
+    --ink: 241 245 249;
+    --muted: 148 163 184;
+    --faint: 100 116 139;
+    --accent: 59 130 246;
+    --success: 34 197 94;
+    --warning: 245 158 11;
+    --danger: 239 68 68;
+    --info: 96 165 250;
+    --iris: 59 130 246;
+    --rose: 96 165 250;
+    --foam: 34 197 94;
+    --gold: 245 158 11;
+    --love: 239 68 68;
+    --pine: 14 165 233;
 
 
     --shadow-card: 0 1px 2px rgb(2 6 23 / 0.4), 0 8px 24px -12px rgb(2 6 23 / 0.55);
@@ -38,25 +38,25 @@
 
   .theme-light {
 
-    --canvas: 251 241 199;
-    --sidebar: 242 229 188;
-    --surface: 251 241 199;
-    --card: 235 219 178;
-    --line: 213 196 161;
-    --ink: 60 56 54;
-    --muted: 102 92 84;
-    --faint: 146 131 116;
-    --accent: 175 58 3;
-    --success: 121 116 14;
-    --warning: 181 118 20;
-    --danger: 157 0 6;
-    --info: 66 123 88;
-    --iris: 143 63 113;
-    --rose: 157 0 6;
-    --foam: 121 116 14;
-    --gold: 181 118 20;
-    --love: 157 0 6;
-    --pine: 66 123 88;
+    --canvas: 248 250 252;
+    --sidebar: 255 255 255;
+    --surface: 255 255 255;
+    --card: 241 245 249;
+    --line: 226 232 240;
+    --ink: 15 23 42;
+    --muted: 100 116 139;
+    --faint: 148 163 184;
+    --accent: 37 99 235;
+    --success: 22 163 74;
+    --warning: 217 119 6;
+    --danger: 220 38 38;
+    --info: 2 132 199;
+    --iris: 37 99 235;
+    --rose: 2 132 199;
+    --foam: 22 163 74;
+    --gold: 217 119 6;
+    --love: 220 38 38;
+    --pine: 7 89 133;
 
     --shadow-card: 0 1px 2px rgb(15 23 42 / 0.05), 0 8px 24px -14px rgb(15 23 42 / 0.14);
     --shadow-card-hover: 0 1px 2px rgb(15 23 42 / 0.05), 0 16px 40px -16px rgb(37 99 235 / 0.16);
