@@ -37,17 +37,33 @@ export default function Landing() {
       </section>
 
       <section className="mx-auto max-w-6xl px-6 py-12">
-        <h2 className="text-2xl font-semibold">Works with your tools</h2>
-        <div className="mt-4 flex flex-wrap gap-3">
-          {TOOLS.map((t) => (
-            <span key={t} className="rounded-full border border-slate-700 px-4 py-2 text-sm">{t}</span>
-          ))}
-        </div>
-        <h2 className="mt-8 text-2xl font-semibold">Routes to providers</h2>
-        <div className="mt-4 flex flex-wrap gap-3">
-          {PROVIDERS.map((p) => (
-            <span key={p} className="rounded-full border border-slate-700 px-4 py-2 text-sm">{p}</span>
-          ))}
+        <h2 className="text-2xl font-semibold">Gateway diagram</h2>
+        <svg viewBox="0 0 800 240" className="mt-6 w-full" role="img" aria-label="Gateway diagram">
+          <title>APICostGuard gateway</title>
+          <desc>Your tools feed the APICostGuard gateway which fans out to providers.</desc>
+          <rect x="20" y="90" width="160" height="60" rx="12" fill="#334155" />
+          <text x="100" y="125" textAnchor="middle" fill="#e2e8f0" fontSize="14">Your tools</text>
+          <rect x="320" y="70" width="160" height="100" rx="12" fill="#0f766e" />
+          <text x="400" y="115" textAnchor="middle" fill="#ecfeff" fontSize="14">APICostGuard</text>
+          <text x="400" y="135" textAnchor="middle" fill="#ccfbf1" fontSize="11">Usage · Cost · Budgets</text>
+          <rect x="620" y="90" width="160" height="60" rx="12" fill="#334155" />
+          <text x="700" y="125" textAnchor="middle" fill="#e2e8f0" fontSize="14">Providers</text>
+          <line x1="180" y1="120" x2="320" y2="120" stroke="#94a3b8" strokeWidth="2" />
+          <line x1="480" y1="120" x2="620" y2="120" stroke="#94a3b8" strokeWidth="2" />
+        </svg>
+        <div className="mt-8 grid gap-4 md:grid-cols-2">
+          <div>
+            <h3 className="font-semibold">Works with your tools</h3>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {TOOLS.map((t) => (<span key={t} className="rounded-full border border-slate-700 px-3 py-1.5 text-sm">{t}</span>))}
+            </div>
+          </div>
+          <div>
+            <h3 className="font-semibold">Routes to providers</h3>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {PROVIDERS.map((p) => (<span key={p} className="rounded-full border border-slate-700 px-3 py-1.5 text-sm">{p}</span>))}
+            </div>
+          </div>
         </div>
       </section>
 
