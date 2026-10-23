@@ -15,6 +15,7 @@ const Alerts = lazy(() => import("./pages/Alerts"));
 const Settings = lazy(() => import("./pages/Settings"));
 const APIKeys = lazy(() => import("./pages/APIKeys"));
 const About = lazy(() => import("./pages/About"));
+const Landing = lazy(() => import("./pages/Landing"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function PageLoader({ children }: { children: React.ReactNode }) {
@@ -28,7 +29,8 @@ function PageLoader({ children }: { children: React.ReactNode }) {
 export default function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<PageLoader><Dashboard /></PageLoader>} />
+      <Route path="/" element={<PageLoader><Landing /></PageLoader>} />
+<Route path="/app" element={<PageLoader><Dashboard /></PageLoader>} />
       <Route path="/gateway" element={<PageLoader><Gateway /></PageLoader>} />
       <Route path="/requests" element={<PageLoader><Requests /></PageLoader>} />
       <Route path="/providers" element={<PageLoader><Providers /></PageLoader>} />
