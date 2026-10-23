@@ -61,14 +61,14 @@ export function importApiKeysJson(json: string): number {
   return valid.length;
 }
 
-export async function saveKeyToBackend(provider: string, key: string): Promise<boolean> {
+export async function saveKeyToBackend(provider: string, key: string): Promise<{ ok: boolean; error?: string }> {
   try {
     await backendPost(`/api/providers/${encodeURIComponent(provider)}/key`, {
       api_key: key.trim(),
     });
-    return true;
-  } catch {
-    return false;
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
 

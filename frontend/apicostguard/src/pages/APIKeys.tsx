@@ -38,9 +38,9 @@ export default function APIKeys() {
       setError("Key looks too short — paste the full API key.");
       return;
     }
-    const saved = await saveKeyToBackend(provider, keyValue);
-    if (!saved) {
-      setError("Could not save key to the gateway. Is the gateway running?");
+    const result = await saveKeyToBackend(provider, keyValue);
+    if (!result.ok) {
+      setError(result.error ?? "Could not save key to the gateway. Is the gateway running?");
       return;
     }
     addApiKey(provider);
