@@ -15,6 +15,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - platform: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            tauri-target: ""
+            bin-ext: ""
+            sidecar-name: apicostguard_backend-x86_64-unknown-linux-gnu
+
           - platform: windows-latest
             target: x86_64-pc-windows-msvc
             tauri-target: ""
@@ -37,7 +43,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Linux system dependencies
         if: matrix.platform == 'ubuntu-22.04'
@@ -50,7 +56,7 @@ jobs:
             patchelf
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: lts/*
           cache: npm

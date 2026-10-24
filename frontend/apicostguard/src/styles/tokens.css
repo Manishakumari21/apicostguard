@@ -1,0 +1,107 @@
+/* -------------------------------------------------------------------------
+   CostGuard design tokens — an original "observatory" system.
+   Deep-space neutrals, aurora accents, fine hairlines and soft depth.
+   ------------------------------------------------------------------------- */
+
+:root {
+  color-scheme: dark;
+
+  --bg: #030712;
+  --bg-deep: #020617;
+  --canvas: #030712;
+  --surface: #0b1020;
+  --surface-2: #111827;
+  --surface-3: #1f2937;
+  --panel: rgba(11, 15, 28, 0.72);
+  --panel-solid: #0b0f1c;
+  --panel-soft: rgba(255, 255, 255, 0.035);
+  --panel-hover: rgba(255, 255, 255, 0.06);
+
+  --text: #ffffff;
+  --text-soft: #cbd5e1;
+  --muted: #94a3b8;
+  --faint: #64748b;
+  --whisper: #475569;
+
+  --line: rgba(255, 255, 255, 0.1);
+  --line-soft: rgba(255, 255, 255, 0.06);
+  --line-strong: rgba(255, 255, 255, 0.2);
+
+  --violet: #818cf8;
+  --violet-bright: #a5b4fc;
+  --violet-deep: #4f46e5;
+  --blue: #38bdf8;
+  --cyan: #38bdf8;
+  --mint: #34d399;
+  --amber: #f59e0b;
+  --rose: #f43f5e;
+  --red: #ef4444;
+  --green: #10b981;
+
+  --grad-aurora: linear-gradient(135deg, #38bdf8 0%, #6366f1 50%, #a855f7 100%);
+  --grad-violet: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);
+  --grad-cyan: linear-gradient(135deg, #38bdf8 0%, #6366f1 100%);
+  --grad-amber: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+  --grad-rose: linear-gradient(135deg, #f43f5e 0%, #be123c 100%);
+  --grad-panel: linear-gradient(160deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%), rgba(11, 15, 28, 0.75);
+  --grad-feature:
+    radial-gradient(120% 130% at 0% 0%, rgba(99, 102, 241, 0.22) 0%, transparent 52%),
+    radial-gradient(100% 110% at 100% 0%, rgba(56, 189, 248, 0.14) 0%, transparent 48%),
+    linear-gradient(160deg, #0b1020 0%, #030712 100%);
+
+  --radius-2xl: 28px;
+  --radius-xl: 22px;
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+  --radius-pill: 999px;
+
+  --shadow-panel:
+    0 20px 50px -15px rgba(0, 0, 0, 0.85),
+    0 0 30px rgba(99, 102, 241, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  --shadow-raised:
+    0 20px 40px -20px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  --shadow-pop:
+    0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 30px 80px -20px rgba(0, 0, 0, 0.9),
+    0 0 50px -15px rgba(99, 102, 241, 0.35);
+  --shadow-glow: 0 0 40px -10px rgba(99, 102, 241, 0.45);
+
+  --font-sans: "Inter", "Geist Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono Variable", "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+
+  --sidebar-width: 274px;
+  --topbar-height: 66px;
+  --page-max: 1480px;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 140ms;
+  --dur-base: 220ms;
+  --dur-slow: 420ms;
+}
+
+/* A calmer, higher-contrast variant for bright rooms. */
+:root[data-contrast="high"] {
+  --text: #ffffff;
+  --text-soft: #e2dff0;
+  --muted: #ada9c0;
+  --faint: #858198;
+  --line: rgba(255, 255, 255, 0.13);
+  --line-strong: rgba(255, 255, 255, 0.22);
+  --panel: rgba(9, 11, 20, 0.94);
+}
+
+:root[data-density="compact"] {
+  --radius-2xl: 22px;
+  --radius-xl: 18px;
+  --radius-lg: 14px;
+}
+
+:root[data-reduce-motion="true"] {
+  --dur-fast: 0ms;
+  --dur-base: 0ms;
+  --dur-slow: 0ms;
+}
