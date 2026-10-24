@@ -13,8 +13,6 @@ export default function ShowcasePage() {
   const [budgetLimit, setBudgetLimit] = useState<number>(100);
   const [copiedCmd, setCopiedCmd] = useState<string | null>(null);
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
-
-  // Live token simulation timer
   useEffect(() => {
     if (!isStreaming) return;
     const interval = setInterval(() => {
@@ -31,8 +29,6 @@ export default function ShowcasePage() {
     setCopiedCmd(id);
     setTimeout(() => setCopiedCmd(null), 2000);
   };
-
-  // Cost calculation
   const modelRates: Record<string, { prompt: number; completion: number; provider: string; color: string }> = {
     "gpt-4o": { prompt: 2.5 / 1000000, completion: 10 / 1000000, provider: "OpenAI", color: "#10a37f" },
     "claude-3-5-sonnet": { prompt: 3 / 1000000, completion: 15 / 1000000, provider: "Anthropic", color: "#d97706" },
@@ -47,7 +43,6 @@ export default function ShowcasePage() {
 
   return (
     <div className="showcase-root">
-      {/* Floating Glass Navigation */}
       <header className="showcase-nav-wrapper">
         <nav className="showcase-nav" aria-label="Main Navigation">
           <Link to="/" className="showcase-brand">
@@ -81,8 +76,6 @@ export default function ShowcasePage() {
           </div>
         </nav>
       </header>
-
-      {/* Hero Section */}
       <section className="showcase-hero">
         <div className="showcase-hero-container">
           <a href="#releases" className="release-pill">
@@ -132,8 +125,6 @@ export default function ShowcasePage() {
           </div>
         </div>
       </section>
-
-      {/* 3D / Glass Preview Stage */}
       <section id="stage" className="preview-stage-section">
         <div className="preview-stage-container">
           <div className="stage-window-bar">
@@ -448,8 +439,6 @@ export default function ShowcasePage() {
           </div>
         </div>
       </section>
-
-      {/* Bento Features Grid */}
       <section id="features" className="bento-section">
         <div className="section-head">
           <span className="section-tag">Full Feature Matrix</span>
@@ -559,8 +548,6 @@ export default function ShowcasePage() {
           </div>
         </div>
       </section>
-
-      {/* Multi-Platform Releases Section */}
       <section id="releases" className="releases-section">
         <div className="section-head">
           <span className="section-tag">Cross-Platform Installers</span>
@@ -594,8 +581,6 @@ export default function ShowcasePage() {
             <Icon name="server" size={16} /> Windows (NSIS &amp; Portable)
           </button>
         </div>
-
-        {/* Linux Releases */}
         {activePlatform === "linux" && (
           <div className="release-grid">
             <div className="release-card">
@@ -701,8 +686,6 @@ export default function ShowcasePage() {
             </div>
           </div>
         )}
-
-        {/* macOS Releases */}
         {activePlatform === "macos" && (
           <div className="release-grid">
             <div className="release-card">
@@ -808,8 +791,6 @@ export default function ShowcasePage() {
             </div>
           </div>
         )}
-
-        {/* Windows Releases */}
         {activePlatform === "windows" && (
           <div className="release-grid">
             <div className="release-card">
@@ -947,8 +928,6 @@ export default function ShowcasePage() {
           </div>
         </div>
       </section>
-
-      {/* Architecture & Flow */}
       <section id="architecture" className="arch-box">
         <div style={{ textAlign: "center", marginBottom: 30 }}>
           <span className="section-tag">How It Works</span>
@@ -979,8 +958,6 @@ export default function ShowcasePage() {
           </div>
         </div>
       </section>
-
-      {/* FAQ Section */}
       <section id="faq" className="faq-section">
         <div className="section-head" style={{ marginBottom: 36 }}>
           <span className="section-tag">Common Questions</span>
@@ -1018,8 +995,6 @@ export default function ShowcasePage() {
           </div>
         ))}
       </section>
-
-      {/* Footer */}
       <footer className="showcase-footer">
         <div style={{ maxWidth: 960, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
