@@ -76,7 +76,7 @@ pub async fn run() -> anyhow::Result<()> {
         provider_service,
         notification_service,
     );
-    let app = api::routes::build_router(state);
+    let app = api::routes::build_router(state)?;
 
     let addr = settings.socket_addr();
     let listener = TcpListener::bind(&addr).await?;

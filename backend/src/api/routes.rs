@@ -18,7 +18,7 @@ use crate::security::auth::require_local_token;
 const MAX_BODY_BYTES: usize = 1_048_576; // 1 MiB: blocks $$$ abuse via huge messages arrays
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(35);
 
-pub fn build_router(state: AppState) -> Router {
+pub fn build_router(state: AppState) -> anyhow::Result<Router> {
     // Auth is enforced only when APICOSTGUARD_GATEWAY_TOKEN is set.
     // Single-user desktop (no token) keeps working; prod/network use is protected.
     let auth = axum::middleware::from_fn_with_state(state.clone(), require_local_token);
@@ -70,17 +70,21 @@ pub fn build_router(state: AppState) -> Router {
 
     let gateway_router = gateway::build_router().route_layer(auth);
 
+    // Resolved up front so a rejected ALLOWED_ORIGINS fails startup instead of
+    // degrading to unrestricted CORS inside the layer chain.
+    let cors_layer = cors::cors_layer(&state.settings.allowed_origins)?;
+
     // Merge FIRST, then apply observability layers so they cover every route.
-    public
+    Ok(public
         .merge(protected_api)
         .merge(gateway_router)
         .fallback(error_handler::handle_404)
         .layer(SetRequestIdLayer::x_request_id(MakeRequestUuid))
         .layer(logger::layer())
-        .layer(cors::cors_layer(&state.settings.allowed_origins))
+        .layer(cors_layer)
         .layer(PropagateRequestIdLayer::x_request_id())
         .layer(RequestBodyLimitLayer::new(MAX_BODY_BYTES))
         .layer(TimeoutLayer::new(REQUEST_TIMEOUT))
         .layer(CompressionLayer::new())
-        .with_state(state)
+        .with_state(state))
 }

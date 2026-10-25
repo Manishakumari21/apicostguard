@@ -52,7 +52,8 @@ mod integration_tests {
             provider,
             notifications,
         );
-        let router = crate::api::routes::build_router(state.clone());
+        let router = crate::api::routes::build_router(state.clone())
+            .expect("the empty allowed-origins list used by tests is valid");
         (router, state)
     }
 
