@@ -372,14 +372,28 @@ pointing AI tools at the gateway, and troubleshooting.
 For the full release pipeline (signing key, GitHub secrets, tagging steps,
 testing updates) see **[RELEASE.md](RELEASE.md)**.
 
+## Deployment (Vercel + Render)
+
+The web build never holds the gateway token. The browser calls a same-origin
+Vercel Function (`frontend/apicostguard/api/`), which injects
+`APICOSTGUARD_GATEWAY_TOKEN` server-side before forwarding to the Render
+backend. `VITE_API_TOKEN` does not exist and the build fails if it is ever set.
+
+See **[docs/DEPLOY_VERCEL.md](docs/DEPLOY_VERCEL.md)** for the exact Vercel
+environment variables, Root Directory / Build Command settings, deployment
+steps, verification commands, and the threat model.
+
 ## Tests & Verification
 
 ```bash
 # Backend: 24 tests (cargo clippy -- -D warnings clean, cargo fmt clean)
 cd backend && cargo test
 
-# Frontend: typecheck + production build
-cd frontend/apicostguard && npm run build
+# Frontend: 50 tests + typecheck + web production build
+cd frontend/apicostguard && npm test && npm run build
+
+# Desktop bundle (Tauri) — separate mode, targets the local sidecar
+cd frontend/apicostguard && npm run build:desktop
 
 # Endpoint smoke test (backend must be running)
 bash docs/test_all_phases.sh

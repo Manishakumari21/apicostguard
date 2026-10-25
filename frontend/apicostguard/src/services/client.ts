@@ -1,8 +1,27 @@
-const DEFAULT_BASE_URL = "http://localhost:8080";
 const REQUEST_TIMEOUT_MS = 9_000;
 
+/**
+ * `""` means "relative to this origin": the browser calls the serverless
+ * proxy at `/api/*`, which is where the gateway token is injected.
+ *
+ * Web builds always resolve to `""` even if the env var went missing, so a
+ * dropped variable can never fall back to talking to the backend directly.
+ * Everything else keeps the historical default (the bundled Tauri sidecar).
+ */
+const DEFAULT_BASE_URL = import.meta.env.MODE === "web" ? "" : "http://localhost:8080";
+
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
-export const HAS_API_TOKEN = Boolean(import.meta.env.VITE_API_TOKEN);
+
+/**
+ * Whether this deployment is bearer-token protected.
+ *
+ * The browser holds no credential either way: when talking through the
+ * same-origin proxy the token lives in the server-side environment and is
+ * attached to the outbound request there. `VITE_API_TOKEN` is deliberately
+ * never read -- any `VITE_*` value is compiled into the public bundle, and the
+ * build fails if one is present.
+ */
+export const HAS_API_TOKEN = API_BASE_URL === "";
 
 type ErrorKind = "unreachable" | "timeout" | "aborted" | "http" | "invalid";
 
@@ -42,11 +61,6 @@ interface RequestOptions {
   signal?: AbortSignal;
 }
 
-function authHeaders(): Record<string, string> {
-  const token = import.meta.env.VITE_API_TOKEN;
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 async function attempt<T>(path: string, options: RequestOptions): Promise<T> {
   const controller = new AbortController();
   const abort = () => controller.abort();
@@ -54,7 +68,10 @@ async function attempt<T>(path: string, options: RequestOptions): Promise<T> {
 
   const timer = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   const method = options.method ?? "GET";
-  const headers: Record<string, string> = { ...authHeaders() };
+  // Deliberately no Authorization header. The gateway token is server-side
+  // (see api/index.ts); putting it in a request header here would mean putting
+  // it in the bundle first.
+  const headers: Record<string, string> = {};
   if (options.body !== undefined) headers["Content-Type"] = "application/json";
 
   try {
