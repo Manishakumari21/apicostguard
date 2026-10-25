@@ -1,4 +1,9 @@
-import { handleProxyRequest } from "./_proxy";
+// The explicit `.js` extension is required: `package.json` sets `"type": "module"`,
+// so Vercel compiles this handler to native ESM and Node resolves relative
+// specifiers exactly as written. Without it the module fails to load with
+// ERR_MODULE_NOT_FOUND at cold start (surfaced as FUNCTION_INVOCATION_FAILED).
+// TypeScript still maps `./_proxy.js` onto `./_proxy.ts` when type-checking.
+import { handleProxyRequest } from "./_proxy.js";
 
 /**
  * The one Vercel Function behind every `/api/*`, `/health` and `/version`
